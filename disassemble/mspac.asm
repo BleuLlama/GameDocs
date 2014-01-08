@@ -63,7 +63,7 @@
 ;;		HACK11 -> HACK9
 ;;
 ;; 2014-01-02
-;;	Added OTTOPATCH information from Crazy Otto source (temporarily removed)
+;;	Added "OTTOPATCH" information from Crazy Otto source
 ;;
 ;; 2009-12-16
 ;;	Added some Crazy Otto notes
@@ -1780,6 +1780,10 @@ CH1_W_VOL       EQU     4edb
 0412  c9        ret     		; return (to #0195)
 
 	; table lookup
+; OTTOPATCH
+;PATCH FOR NEW ATTRACT MODE
+ORG 0413H
+JP ATTRACT
 0413  c35c3e    jp      #3e5c		; jump to mspac patch when there are no credits - controls the demo mode
 					; code resumes at #045F
 
@@ -2527,6 +2531,12 @@ CH1_W_VOL       EQU     4edb
 	;; routine to determine the number of pellets which must be eaten
 
 08de  3a0e4e    ld      a,(#4e0e)	; load A with number of pellets eaten
+
+; OTTOPATCH
+;PATCH TO ADJUST THE TOTAL DOT NUMBER
+ORG 08E1H
+JP MOREDOTS
+NOP
 08e1  c3a194    jp      #94a1		; jump to ms pac man new check for end of level routine
 08e4  00        nop 			; junk
     
@@ -3101,6 +3111,11 @@ CH1_W_VOL       EQU     4edb
 0c1c  2000	jr 	nz,#0c1e	; no, do nothing
 
 0c1e  216444    ld      hl,#4464	; else load HL with first power pellet address (legacy from pac-man.  new routine loads new value)
+
+; OTTOPATCH
+;PATCH TO MAKE THE ENERGIZERS FLASH IN NEW AND EXCITING COLORS
+ORG 0C21H
+JP FLASHEN
 0c21  c32495    jp      #9524		; jump to new ms pac routine to flash power pellets
 
 ;; Pac-man code:
@@ -3414,6 +3429,8 @@ CH1_W_VOL       EQU     4edb
 ; arrive here when ghosts reverse direction
 ; this differs from the pac-man code
 
+; OTTOPATCH
+;PATCH TO MAKE RED MONSTER GO AFTER OTTO TO AVOID PARKING
 0e5c  af        xor     a		; else A := #00
 0e5d  00        nop     		; 
 
@@ -3484,8 +3501,11 @@ CH1_W_VOL       EQU     4edb
 
 ; called from #0909
 
-; OTTOPATCH to make the primary fruit routine, this routine is called once 
-;       per games step (the minimum time it takes a monster to move a pixel)
+; OTTOPATCH
+;PATCH TO THE PRIMARY FRUIT ROUTINE, THIS ROUTINE IS CALLED ONCE PER
+;GAME STEP (THE MINIMUM TIME IT TAKES A MONSTER TO MOVE A PIXEL)
+ORG 0EADH
+JP DOFRUIT
 0ead  c3ee86    jp      #86ee		; jump to Ms. Pac patch for fruit release OTTO DOFRUIT
 
 ; original pac man code:
@@ -5246,6 +5266,11 @@ CH1_W_VOL       EQU     4edb
 
 19A7: 2A 08 4D	ld	hl,(#4D08)	; load HL with pacman Y position
 19AA: 11 94 80	ld	de,#8094	; load DE with #8094 (why?  on jump DE is loaded with new values.  this is junk from pac-man)
+
+; OTTOPATCH
+;PATCH TO MAKE THE PACMAN AWARE OF THE CHANGING POSITION OF THE FRUIT
+ORG 19ADH
+JP EATFRUIT
 19AD: C3 18 88	jp	#8818		; MS Pac-man patch. jump to check for fruit being eaten
 
 19B0: 20 1B	jr	nz,#19CD	; junk from pac-man
@@ -6303,6 +6328,12 @@ CH1_W_VOL       EQU     4edb
 205a  cd5220    call    #2052		; convert ghost Y,X position in HL to a color screen location
 205d  7e        ld      a,(hl)		; load A with the color of the ghost's location
 205e  fe1b      cp      #1b		; == #1b ? (code for no change of direction, eg above the ghost home in pac-man)
+
+; OTTOPATCH
+;PATCH TO MAKE BIT 6 OF THE COLOR MAP INDICATE SLOW AREAS
+ORG 2060H
+JP SLOWMAP
+NOP
 2060  c36f36    jp      #366f		; jump to new patch for ms. pac man.  if no tunnel match, returns to #2066
 
 2063  00        nop     		; junk from ms-pac patch
@@ -6908,6 +6939,11 @@ CH1_W_VOL       EQU     4edb
 23DA: 5A 2A 				; #2A5A	; A=19	; update score.  B has code for items scored, draw score on screen, check for high score and extra lives
 23DC: 6A 2B				; #2B6A	; A=1A	; draws remaining lives at bottom of screen
 23DE: EA 2B				; #2BEA	; A=1B	; draws fruit at bottom right of screen
+
+; OTTOPATCH
+;MISCELLANEOUS HACKS THAT OCCUR WHEN PROMPTS ARE WRITTEN.
+!    ORG 23E0H
+!    WORD PROMPTHACKS
 23E0: E3 95				; #95E3	; A=1C	; used to draw text and some other functions  ; parameter lookup for text found at #36a5
 23E2: A1 2B				; #2BA1	; A=1D	; write # of credits on screen
 23E4: 75 26				; #2675	; A=1E	; clear fruit, pacman, and all ghosts
@@ -6957,6 +6993,11 @@ CH1_W_VOL       EQU     4edb
 	;; Draw out the maze to the screen
 
 2419  210040    ld      hl,#4000	; load HL with start of video ram
+
+; OTTOPATCH
+;PATCH TO USE A MAZE FROM THE NEW MAZE TABLE RATHER THAN THE OLD MAZE
+ORG 241CH
+CALL WALLADR
 241c  cd6a94    call    #946a		; ms. pac patch to retreive map info.  loads BC based on the map
 
 241f  0a        ld      a,(bc)		; get maze data
@@ -6994,6 +7035,13 @@ CH1_W_VOL       EQU     4edb
 	; draw out the player pills
 
 2448  210040    ld      hl,#4000	; load HL with start of video ram
+; OTTOPATCH
+;PATCH TO DO SAME THING FOR DOTS
+;NOTE THAT THE DOT TABLE IS USED TWICE, ONCE TO WRITE THE DOTS ONTO
+;THE SCREEN THEN AGAIN TO SEE WHICH DOTS HAVE BEEN EATEN.
+ORG 244BH
+JP DOTSA1
+
 244b  c37c94    jp      #947c		; jump to ms pac patch.  it returns to #2453
 
 244e  4e				; junk
@@ -7020,6 +7068,10 @@ CH1_W_VOL       EQU     4edb
 
 246f  21344e    ld      hl,#4e34	; load HL with power pills data entries address
 
+; OTTOPATCH
+;PATCH TO USE NEW ENERGIZER LOCATIONS
+ORG 2472H
+JP DRAWEN
 2472  c3ec94    jp      #94ec		; jump to ms pac patch for power pellet drawing
 
 	; pac's version:
@@ -7040,6 +7092,10 @@ CH1_W_VOL       EQU     4edb
 	; called from #23A7 as task #15
 
 2487  210040    ld      hl,#4000	; load HL with start of video ram
+
+; OTTOPATCH
+ORG 248AH
+JP DOTSA2
 248a  c38194    jp      #9481		; jump to Ms Pac Man patch.  returns to #2492.  Loads IY with start of pellet table based on level
 
 248d  4e				; junk
@@ -7069,6 +7125,10 @@ CH1_W_VOL       EQU     4edb
 24af  20e5      jr      nz,#2496        ; no, loop again
 
 24b1  216440    ld      hl,#4064	; load HL with power pellet address
+
+; OTTOPATCH
+ORG 24B4H
+JP READEN
 24b4  c30495    jp      #9504		; jump to ms. pac patch for pellet check routine and return
 
 	; pac's version:
@@ -7106,6 +7166,10 @@ CH1_W_VOL       EQU     4edb
 24d8  78        ld      a,b		; load A with task parameter
 24d9  fe02      cp      #02		; == # 02 ?
 24db  3e1f      ld      a,#1f		; load A with #1F = white color for flashing at end of level
+
+; OTTOPATCH
+;PATCH TO CALL AMAZING NEW COLOR ROUTINE INSTEAD OF USING THE SAME DULL BLUE
+ORG 24DDH
 24dd  c38095    jp      #9580		; jump to new sub to select screen color (ms pac patch.  returns to #24E1)
 
 ;; Pac-man code:
@@ -7133,6 +7197,11 @@ CH1_W_VOL       EQU     4edb
 24f6  c0        ret     nz		; no, return
 
 24f7  3e1a      ld      a,#1a		; else A := #1A.  this is the color code to prevent ghosts from changing directions above the ghost house and next to where pacman starts
+
+; OTTOPATCH
+;PATCH TO MAKE THE SLOW AREAS OF THE SCREEN DEPENDENT ON THE MAZE
+ORG 24F9H
+JP SCOLOR
 24f9  c3c395    jp      #95c3		; jump to new ms. pac man patch to color the tunnels with invisible slowdown "paint".  returns to #2534
 
 ;; Pac-man code:
@@ -7458,6 +7527,11 @@ CH1_W_VOL       EQU     4edb
 
 2745  2a0a4d    ld      hl,(#4d0a)	; yes, load HL with red ghost location  YY XX
 2748  3a2c4d    ld      a,(#4d2c)	; load A with red ghost direction
+
+; OTTPATCH
+;PATCH TO MAKE THE MONSTERS MOVE RANDOMLY
+ORG 274BH
+CALL RCORNER
 274b  cd6195    call    #9561		; load DE with a (random ?) quadrant for the destination
 274e  cd6629    call    #2966		; get dir. by finding shortest distance
 2751  221e4d    ld      (#4d1e),hl	; store red ghost movement offsets
@@ -7487,6 +7561,11 @@ CH1_W_VOL       EQU     4edb
 
 277b  2a0c4d    ld      hl,(#4d0c)	; else load HL with pink ghost position
 277e  3a2d4d    ld      a,(#4d2d)	; load A with pink ghost direction
+
+; OTTPATCH
+;PATCH TO MAKE THE MONSTERS MOVE RANDOMLY
+ORG 2781H
+CALL RCORNER
 2781  cd6195    call    #9561		; call new code to pick a location to move toward ?
 2784  cd6629    call    #2966		; get new direction by finding shortest distance
 2787  22204d    ld      (#4d20),hl	; store new pink ghost Y and X tile changes
@@ -7524,6 +7603,11 @@ CH1_W_VOL       EQU     4edb
 ; random (?) blue ghost (inky) movement
 
 27b8  2a0e4d    ld      hl,(#4d0e)	; load HL with inky position
+
+; OTTPATCH
+;PATCH TO MAKE THE MONSTERS MOVE RANDOMLY
+ORG 2781H
+CALL RCORNER
 27bb  cd5995    call    #9559		; pick a random quadrant (why ??? DE is loaded new in next step)
 27be  114020    ld      de,#2040	; load DE with lower right corner destination
 27c1  cd6629    call    #2966		; get best new direction
@@ -7569,6 +7653,10 @@ CH1_W_VOL       EQU     4edb
 ; not really random, the random quadrant gets overridden with the lower left corner
 
 2800  2a104d    ld      hl,(#4d10)	; load HL with orange ghost position
+; OTTPATCH
+;PATCH TO MAKE THE MONSTERS MOVE RANDOMLY
+ORG 2803H
+CALL R2CORNER
 2803  cd5e95    call    #955e		; pick a random quadrant (why?  DE is loaded new in next step)
 2806  11403b    ld      de,#3b40	; load DE with lower left corner destination
 2809  cd6629    call    #2966		; get best new direction
@@ -8277,6 +8365,11 @@ CH1_W_VOL       EQU     4edb
 
 2bf0  3a134e    ld      a,(#4e13)	; else Load A with current board level
 2bf3  3c        inc     a		; increment it
+
+; OTTOPATCH
+;PATCH TO MAKE FRUIT not SCROLL ACROSS SCREEN BOTTOM WHEN MAXFRUIT IS REACHED.
+!    ORG 2BF4H
+!    JP MAXFRUIT
 2bf4  c39387    jp      #8793		; jump to new ms. pac man sub, returns to #2BF9
 
 
@@ -10788,7 +10881,18 @@ CH1_W_VOL       EQU     4edb
 ;; 8000 through 8200:  U5 on the aux board 
 ;; 8 byte chunks from here are overlayed down into the pac-man roms
 ;;
+
+!    GLOBAL ATTRACT,CALCADR,MAZENUM
+!    GLOBAL DOFRUIT,EATFRUIT,MAXFRUIT,PROMPTHACKS
+!    GLOBAL WALLADR,DOTSA1,DOTSA2,MOREDOTS
+!    GLOBAL DRAWEN,READEN,FLASHEN
+!    GLOBAL RCORNER,R1CORNER,R2CORNER,SCOLOR,RCOLOR,SLOWMAP
+!    GLOBAL ENTRY1,ENTRY2,ENTRY3
+!    GLOBAL FRUITPNTS
+!    GLOBAL CHOOSETUNE,MELODIES,HARMONIES,AUXILIARY
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ; - OVERLAY - 0x2418
 
@@ -11339,45 +11443,76 @@ CH1_W_VOL       EQU     4edb
 
 ; 2nd intermission data, part 1
 
+; OTTO CODE:
+/*
+!    BYTE SETPOS,!  0FFH,34H
+!    BYTE SETCHAR
+!    WORD !     !    RIGHT_OTTO
+!   BYTE SETN,!    7FH,PAUSE
+!   BYTE SETN,!    24H,PAUSE
+!    BYTE SETN,!    68H,LOOP,0D8H,00,09
+!   BYTE SETN,!    7FH,PAUSE
+!    BYTE SETN,!    18H,PAUSE
+!    BYTE SETPOS,!  00H,094H
+!    BYTE SETCHAR
+!    WORD!!          LEFT_ANNA
+!    BYTE SETN,!    68H,LOOP,028H,00,09
+!   BYTE SETN,!    7FH,PAUSE
+!    BYTE SETPOS,!  0FCH,7FH
+!    BYTE SETCHAR
+!    WORD !     !    RIGHT_OTTO
+!    BYTE SETN,!    18H,PAUSE
+!    BYTE SETN,!    68H,LOOP,0D8H,0,09
+!   BYTE SETN,!    7FH,PAUSE
+!    BYTE SETN,!    18H,PAUSE
+!    BYTE SETPOS,!  00H,054H
+!    BYTE SETCHAR
+!    WORD!!          LEFT_ANNA
+!    BYTE SETN,!    20H,LOOP,070H,00,09
+!    BYTE SETPOS,!  0FFH,0B4H
+!    BYTE SETCHAR
+!    WORD!!          RIGHT_OTTO
+!    BYTE SETN,!    10H,PAUSE
+*/
 8395:  F2 5A
 8397:  F6
-8398:  F1 FF 34
-839B:  F3 14 86			; #8614
-839E:  F2 7F
-83A0:  F6
-83A1:  F2 24
-83A3:  F6
-83A4:  F2 68
-83A6:  F0 D8 00 09
-83AA:  F2 7F
-83AC:  F6
-83AD:  F2 18
-83AF:  F6
-83B0:  F1 00 94 
-83B3:  F3 41 86			; #8641
-83B6:  F2 68
-83B8:  F0 28 00 09
-83BC:  F2 7F
-83BE:  F6
-83BF:  F1 FC 7F
-83C2:  F3 14 86			; #8614
-83C5:  F2 18
-83C7:  F6
-83C8:  F2 68
-83CA:  F0 D8 00 09
-83CE:  F2 7F
-83D0:  F6
-83D1:  F2 18
-83D3:  F6
-83D4:  F1 00 54
-83D7:  F3 41 86			; #8641
+8398:  F1 FF 34			; SETPOS, FF, 34
+839B:  F3 14 86			; SETCHAR ( RIGHT_OTTO )
+839E:  F2 7F			; SETN( 7f )
+83A0:  F6			; PAUSE
+83A1:  F2 24			; SETN( 24 )
+83A3:  F6			; PAUSE
+83A4:  F2 68			; SETN( 60 )
+83A6:  F0 D8 00 09		; LOOP( d8, 00 09 )
+83AA:  F2 7F			; SETN( 7f )
+83AC:  F6			; PAUSE
+83AD:  F2 18			; SETN( 18 )
+83AF:  F6			; PAUSE
+83B0:  F1 00 94 		; SETCHAR( LEFT_ANNA )
+83B3:  F3 41 86			; SETN( 
+83B6:  F2 68			; SETN(
+83B8:  F0 28 00 09		; continues
+83BC:  F2 7F			; SETN( 7f )
+83BE:  F6			; PAUSE
+83BF:  F1 FC 7F			; SETPOS( fc, 7f )
+83C2:  F3 14 86			; SETCHAR( RIGHT_OTTO )
+83C5:  F2 18			; SETN( 18 )
+83C7:  F6			; PAUSE
+83C8:  F2 68			; SETN( 68 )
+83CA:  F0 D8 00 09		; LOOP ( 28, d8, 0, 09 )
+83CE:  F2 7F			; SETN( 7f ) 
+83D0:  F6			; PAUSE
+83D1:  F2 18			; SETN( 18 )
+83D3:  F6			; PAUSE
+83D4:  F1 00 54			; SETPOS( 00 54 ) 
+83D7:  F3 41 86			; SETCHAR( )
 83DA:  F2 20
 83DC:  F0 70 00 09
-83E0:  F1 FF B4
-83E3:  F3 14 86			; #8614
-83E6:  F2 10
-83E8:  F6
-83E9:  F2 24
+83E0:  F1 FF B4			; SETPOS( ff, 04 )
+83E3:  F3 14 86			; SETCHAR( RIGHT_OTTO )
+83E6:  F2 10			; SETN( 10 )
+83E8:  F6			
+83E9:  F2 24			; SETN( 24 )
 83EB:  F0 90 00 09
 83EF:  FF			; end code
 
@@ -11400,8 +11535,7 @@ CH1_W_VOL       EQU     4edb
 840B:  F2 28
 840D:  F6
 840E:  F1 00 94
-8411:  F3 1D 86			; #861D
-8414:  F2 58
+8411:  F3 1D 86			; #861D 8414:  F2 58
 8416:  F0 30 00 09
 841A:  F2 7F
 841C:  F6
@@ -12967,12 +13101,16 @@ CH1_W_VOL       EQU     4edb
 
         ;; songs data
         
+
 ;; songs data
 ; if '1' = 0 & '2' = MELODY
 ; MELODY = 0
 ; HARMONY = 1
 
 ; startup song
+!    !    IF '1' = 0 & '2' = MELODY
+
+!    TITLE!    "SONATA FOR UNACCOMPANIED VIDEO GAME"
 
 9695  f1 00 f2 02 f3 0a f4 00  41 43 45 86 8a 88 8b 6a
 96a5  6b 71 6a 88 8b 6a 6b 71  6a 6b 71 73 75 96 95 96
