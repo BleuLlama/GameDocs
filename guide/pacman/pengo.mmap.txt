@@ -1,0 +1,65 @@
+Pengo Memory layout:
+
+0000-7fff ROM
+		0000 - 0fff	pengo u8
+		1000 - 1fff	pengo u7
+		2000 - 2fff	pengo u15
+		3000 - 3fff	pengo u14
+		4000 - 4fff	pengo u21
+		5000 - 5fff	pengo u20
+		6000 - 6fff	pengo u32
+		7000 - 7fff	pengo u31
+8000-83ff Video RAM
+8400-87ff Color RAM
+8800-8fff RAM
+
+read:
+9000-903f      DSW1
+9040-907f      DSW0
+9080-90bf      IN1
+90c0-90ff      IN0
+
+IN0:
+    01 up
+    02 down
+    04 left
+    08 right
+    10 coin 1
+    20 coin 2
+    40 coin 3
+    80 button 1
+
+IN1:
+    01 up
+    02 down
+    03 left
+    04 right
+    10 service
+    20 start1
+    40 start2
+    80 button1
+
+write:
+8ff2-8ffd 6 pairs of two bytes:
+          the first byte contains the sprite image number (bits 2-7), 
+		Y flip (bit 0),
+		X flip (bit 1);
+		the second byte the color
+9005      sound voice 1 waveform (nibble)
+9011-9013 sound voice 1 frequency (nibble)
+9015      sound voice 1 volume (nibble)
+900a      sound voice 2 waveform (nibble)
+9016-9018 sound voice 2 frequency (nibble)
+901a      sound voice 2 volume (nibble)
+900f      sound voice 3 waveform (nibble)
+901b-901d sound voice 3 frequency (nibble)
+901f      sound voice 3 volume (nibble)
+9022-902d Sprite coordinates, x/y pairs for 6 sprites
+9040      interrupt enable
+9041      sound enable
+9042      palette bank selector
+9043      flip screen          
+9044-9045 coin counters
+9046      color lookup table bank selector
+9047      character/sprite bank selector
+9070      watchdog reset                
