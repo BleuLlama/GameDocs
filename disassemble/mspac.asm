@@ -54,6 +54,11 @@
 ;;
 ;;				THANKS!
 
+;; 2014-01-12
+;;	Text string decodings (0x3713, 0x3d00) for readibility
+;;	Animation code engine at 0x34a9
+;;	Animation code lists at 0x8251, Rosetta stone at 0x8395
+;;
 ;; 2014-01-06
 ;;	Don Hodges' documentation work added
 ;;	bugfix section added.
@@ -9992,31 +9997,32 @@ CALL R2CORNER
 34a3  0606      ld      b,#06		; B := #06
 34a5  dd210c4f  ld      ix,#4f0c	; load IX with stack.  This holds the list of addresses for the data
 
+; get the next animation code.. (codes return to here when done)
 34a9  dd6e00    ld      l,(ix+#00)
 34ac  dd6601    ld      h,(ix+#01)	; load HL with stack data.  this is an address for data
 34af  7e        ld      a,(hl)		; load data
 34b0  fef0      cp      #f0		; == #F0 ?
-34b2  cade34    jp      z,#34de		; handle code #F0
+34b2  cade34    jp      z,#34de		; handle code #F0 - LOOP
 34b5  fef1      cp      #f1
-34b7  ca6b35    jp      z,#356b		; handle code #F1
+34b7  ca6b35    jp      z,#356b		; handle code #F1 - SETPOS
 34ba  fef2      cp      #f2
-34bc  ca9735    jp      z,#3597		; handle code #F2
+34bc  ca9735    jp      z,#3597		; handle code #F2 - SETN
 34bf  fef3      cp      #f3
-34c1  ca7735    jp      z,#3577		; handle code #F3
+34c1  ca7735    jp      z,#3577		; handle code #F3 - SETCHAR
 34c4  fef5      cp      #f5
-34c6  ca0736    jp      z,#3607		; handle code #F5
+34c6  ca0736    jp      z,#3607		; handle code #F5 - PLAYSOUND
 34c9  fef6      cp      #f6
-34cb  caa435    jp      z,#35a4		; handle code #F6
+34cb  caa435    jp      z,#35a4		; handle code #F6 - PAUSE
 34ce  fef7      cp      #f7
-34d0  caf335    jp      z,#35f3		; handle code #F7
+34d0  caf335    jp      z,#35f3		; handle code #F7 - SHOWACT ?
 34d3  fef8      cp      #f8
-34d5  cafd35    jp      z,#35fd		; handle code #F8
+34d5  cafd35    jp      z,#35fd		; handle code #F8 - CLEARACT ?
 34d8  feff      cp      #ff
-34da  cacb35    jp      z,#35cb		; handle code #FF
+34da  cacb35    jp      z,#35cb		; handle code #FF - END
 
 34dd  76        halt			; wait for interrupt
 
-; for value == #F0
+; for value == #F0 - LOOP
     
 34de  e5        push    hl
 34df  3e01      ld      a,#01
@@ -10122,7 +10128,7 @@ CALL R2CORNER
 3568  e60f      and     #0f
 356a  c9        ret     
 
-; for value == #F1
+; for value == #F1 - SETPOS
 
 356b  eb        ex      de,hl
 356c  cd4136    call    #3641		; load HL with either #4CFE or #4Dc6
@@ -10134,7 +10140,7 @@ CALL R2CORNER
 3574  5e        ld      e,(hl)
 3575  1813      jr      #358a           ; (19)
 
-; for value == #F3
+; for value == #F3 - SETCHAR
 
 3577  eb        ex      de,hl		; save HL into DE
 3578  210f4f    ld      hl,#4f0f	; HL := #4F0F (stack)
@@ -10148,7 +10154,16 @@ CALL R2CORNER
 3585  5e        ld      e,(hl)
 3586  23        inc     hl
 3587  56        ld      d,(hl)		; DE how has the address word after the code #F3
-3588  1800      jr      #358a		; does nothing (?)           
+3588  1800      jr      #358a		; does nothing (?) -- jumps to next instruction
+
+	; It's my gyess that the jr at 3588 and the lack of code #F4 
+	; are related.  In fitting with the style of the other F-commands,
+	; they all end with a jr to 0x358a, including this one. 
+	; I think that in the source code, they removed whatever #F4 
+	; was, but forgot to erase the jr just before it, so you end up with
+	; a jr to the next instruction.  -scott
+
+; cleanup for return from #F0, #F1, #F3
 358a  e1        pop     hl		; restore DE saved earlier into HL
 358b  d5        push    de		; save the address
 358c  df        rst     #18		; load HL with the data in (HL + 2*B)
@@ -10157,10 +10172,10 @@ CALL R2CORNER
 358f  72        ld      (hl),d
 3590  2b        dec     hl
 3591  73        ld      (hl),e
-3592  110300    ld      de,#0003	; DE = #0003
+3592  110300    ld      de,#0003	; 3 bytes used from the code program
 3595  181d      jr      #35b4           ; (29)
 
-; for value = #F2
+; for value = #F2 - SETN
 
 3597  23        inc     hl
 3598  4e        ld      c,(hl)
@@ -10168,10 +10183,10 @@ CALL R2CORNER
 359c  78        ld      a,b
 359d  d7        rst     #10
 359e  71        ld      (hl),c
-359f  110200    ld      de,#0002
+359f  110200    ld      de,#0002	; 
 35a2  1810      jr      #35b4           ; (16)
 
-; for value == #F6
+; for value == #F6 - PAUSE
 
 35a4  21174f    ld      hl,#4f17
 35a7  78        ld      a,b
@@ -10181,10 +10196,10 @@ CALL R2CORNER
 35aa  77        ld      (hl),a
 35ab  110000    ld      de,#0000
 35ae  2004      jr      nz,#35b4        ; (4)
-35b0  1e01      ld      e,#01
+35b0  1e01      ld      e,#01		; 1 byte used from the code program
 35b2  1800      jr      #35b4           ; (0)
 
-;
+; finish up for the above
 
 35b4  dd6e00    ld      l,(ix+#00)
 35b7  dd6601    ld      h,(ix+#01)	; load HL with next value
@@ -10227,7 +10242,7 @@ CALL R2CORNER
 35ed  32004f    ld      (#4f00),a	; clear the intermission indicator
 35f0  c38e05    jp      #058e		; jump back to program
 
-; for value == #F7
+; for value == #F7 - SHOWACT ?
 
 35f3  78        ld      a,b
 35f4  ef        rst     #28		; insert task to display text "        "
@@ -10236,14 +10251,14 @@ CALL R2CORNER
 35f8  110100    ld      de,#0001
 35fb  18b7      jr      #35b4           ; (-73)
 
-; for value == #F8
+; for value == #F8 - CLEARACT
 
 35fd  3e40      ld      a,#40
-35ff  32ac42    ld      (#42ac),a
+35ff  32ac42    ld      (#42ac),a	; blank out the character where the 'ACT' # was displayed
 3602  110100    ld      de,#0001
 3605  18ad      jr      #35b4           ; (-83)
 
-; for value == #F5
+; for value == #F5 - PLAYSOUND
 
 3607  23        inc     hl
 3608  7e        ld      a,(hl)
@@ -10262,6 +10277,7 @@ CALL R2CORNER
 3619  32cc4e    ld      (#4ecc),a	; store in wave to play
 361c  32dc4e    ld      (#4edc),a	; store in wave to play
 
+; this is used to generate the animations with the animation programs stored in the tables
 361f  21f081    ld      hl,#81f0	; load HL with start of table data
 3622  0600      ld      b,#00		; B:=#00
 3624  09        add     hl,bc		; add BC to HL to offset the start of the data
@@ -10351,69 +10367,93 @@ CALL R2CORNER
 36A0  01 04 01 01 01   
 
         ;; Indirect Lookup table for #2C5E routine  (0x48 entries)
-        ;; patched from Pac-Man
+        ;; patched from Pac-Man.  Pac-man items are indented
 
-36a5  1337				; #3713	; 00        HIGH SCORE
-36a7  2337				; #3723	; 01        CREDIT   
-36a9  3237				; #3732	; 02        FREE PLAY
-36ab  4137				; #3741	; 03        PLAYER ONE
-36ad  5a37				; #375A	; 04        PLAYER TWO
-36af  6a37				; #376A	; 05        GAME  OVER
-36b1  7a37				; #377A	; 06        READY!
-36b3  8637				; #3786	; 07        PUSH START BUTTON
-36b5  9d37				; #379D	; 08        1 PLAYER ONLY 
-36b7  b137				; #37B1	; 09        1 OR 2 PLAYERS
-36b9  213d				; #3D21	; 0a        "     "
-36bb  003d				; #3D00	; 0b        ADDITIONAL    AT   000
-36bd  fd37				; #37FD	; 0c        "MS PAC-MAN"
-36bf  673d				; #3D67	; 0d        BLINKY
-36c1  e33d				; #3DE3	; 0e        WITH
-36c3  863d				; #3d86	; 0f        PINKY  
-36c5  023e				; #3E02	; 10        STARRING
-36c7  4c38				; #384C	; 11        . 10 Pts (pac-man only)
-36c9  5a38				; #385A	; 12        o 50 Pts (pac-man only)
-36cb  3c3d				; #3D3C	; 13        (C) MIDWAY MFG CO
-36cd  573d				; #3D57	; 14        MAD DOG
-36cf  d33d				; #3DD3	; 15        JUNIOR
-36d1  763d				; #3D76	; 16        KILLER
-36d3  f23d				; #3DF2	; 17        THE CHASE
-36d5  0100				; #0001	; 18 	    - unused -
-36d7  0200				; #0002	; 19	    - unused -
-36d9  0300				; #0003	; 1a	    - unused -
-36db  bc38				; #38BC	; 1b        100 (pac-man only)
-36dd  c438				; #38C4	; 1c        SUPER PAC-MAN
-36df  ce38				; #38CE	; 1d        MAN
-36e1  d838				; #38D8	; 1e        AN
-36e3  e238				; #38E2	; 1f        - ? -
-36e5  ec38				; #3820	; 20        - ? -
-36e7  f638				; #38F6	; 21        - ? -
-36e9  0039				; #3900	; 22        - ? -
-36eb  0a39				; #390A	; 23        MEMORY  OK
-36ed  1a39				; #391A	; 24        BAD    R M
-36ef  6f39				; #396F	; 25        FREE  PLAY       
-36f1  2a39				; #392A	; 26        1 COIN  1 CREDIT 
-36f3  5839				; #3958	; 27        1 COIN  2 CREDITS
-36f5  4139				; #3941	; 28        2 COINS 1 CREDIT 
-36f7  113e				; #3E11	; 29        MS. PAC-MEN	(service mode screen)
-36f8  8639				; #3986	; 2a        BONUS  NONE
-36fb  9739				; #3997	; 2b        BONUS
-36fd  b039				; #39B0	; 2c        TABLE  
-36ff  bd39				; #39BD	; 2d        UPRIGHT
-3701  ca39				; #39CA	; 2e        000
-3703  a53d				; #3DA5	; 2f        INKY    
-3705  213e				; #3E21	; 30        "        "
-3707  c63d				; #3DC6	; 31        SUE 
-3709  403e				; #3E40	; 32        THEY MEET
-370b  953d				; #3D95	; 33        MS. PAC-MAN  (For "Starring" bit)
-370d  113e				; #3E11	; 34        MS. PAC-MEN	 (service mode screen)
-370f  b43d				; #3DB4	; 35        1980,1981
-3711  303e				; #3E30	; 36        ACT III
+36a5  1337	; #3713	; 00        HIGH SCORE
+36a7  2337	; #3723	; 01        CREDIT   
+36a9  3237	; #3732	; 02        FREE PLAY
+36ab  4137	; #3741	; 03        PLAYER ONE
+36ad  5a37	; #375A	; 04        PLAYER TWO
+36af  6a37	; #376A	; 05        GAME  OVER
+36b1  7a37	; #377A	; 06        READY!
+36b3  8637	; #3786	; 07        PUSH START BUTTON
+36b5  9d37	; #379D	; 08        1 PLAYER ONLY 
+36b7  b137	; #37B1	; 09        1 OR 2 PLAYERS
+36b9  213d	; #3D21	; 0a        "     "
+	003d	;			BONUS PAC-MAN FOR  00PTS
+36bb  003d	; #3D00	; 0b        ADDITIONAL    AT   000
+	213d				@ 1980 Midway Mfg Co
+36bd  fd37	; #37FD	; 0c        "MS PAC-MAN"
+	    				CHARACTER / NICKNAME
+36bf  673d	; #3D67	; 0d        BLINKY
+36c1  e33d	; #3DE3	; 0e        WITH
+					BBBBBBBB
+36c3  863d	; #3d86	; 0f        PINKY  
+36c5  023e	; #3E02	; 10        STARRING
+					DDDDDDDD
+36c7  4c38	; #384C	; 11        . 10 Pts (pac-man only)
+36c9  5a38	; #385A	; 12        o 50 Pts (pac-man only)
+36cb  3c3d	; #3D3C	; 13        (C) MIDWAY MFG CO
+36cd  573d	; #3D57	; 14        MAD DOG
+					-SHADOW
+36cf  d33d	; #3DD3	; 15        JUNIOR
+					AAAAAAAA
+36d1  763d	; #3D76	; 16        KILLER
+					-SPEEDY
+36d3  f23d	; #3DF2	; 17        THE CHASE
+					CCCCCCCC
+36d5  0100	; #0001	; 18 	    - unused -
+36d7  0200	; #0002	; 19	    - unused -
+36d9  0300	; #0003	; 1a	    - unused -
+
+36db  bc38	; #38BC	; 1b        100
+36dd  c438	; #38C4	; 1c        SUPER PAC-MAN
+					300
+36df  ce38	; #38CE	; 1d        MAN
+					500
+36e1  d838	; #38D8	; 1e        AN
+					700
+36e3  e238	; #38E2	; 1f        - ? -
+					1000
+36e5  ec38	; #3820	; 20        - ? -
+					2000
+36e7  f638	; #38F6	; 21        - ? -
+					3000
+36e9  0039	; #3900	; 22        - ? -
+					5000
+36eb  0a39	; #390A	; 23        MEMORY  OK
+36ed  1a39	; #391A	; 24        BAD    R M
+36ef  6f39	; #396F	; 25        FREE  PLAY       
+36f1  2a39	; #392A	; 26        1 COIN  1 CREDIT 
+36f3  5839	; #3958	; 27        1 COIN  2 CREDITS
+36f5  4139	; #3941	; 28        2 COINS 1 CREDIT 
+36f7  113e	; #3E11	; 29        MS. PAC-MEN	(service mode screen)
+	4f3e				PAC-MAN
+36f8  8639	; #3986	; 2a        BONUS  NONE
+36fb  9739	; #3997	; 2b        BONUS
+36fd  b039	; #39B0	; 2c        TABLE  
+36ff  bd39	; #39BD	; 2d        UPRIGHT
+3701  ca39	; #39CA	; 2e        000
+3703  a53d	; #3DA5	; 2f        INKY    
+3705  213e	; #3E21	; 30        "        "
+					FFFFFFFF
+3707  c63d	; #3DC6	; 31        SUE 
+					CLYDE
+3709  403e	; #3E40	; 32        THEY MEET
+					HHHHHHHH
+370b  953d	; #3D95	; 33        MS. PAC-MAN  (For "Starring" bit)
+					BASHFUL
+370d  113e	; #3E11	; 34        MS. PAC-MEN	 (service mode screen)
+					EEEEEEEE
+370f  b43d	; #3DB4	; 35        1980,1981
+					POKEY
+3711  303e	; #3E30	; 36        ACT III
+					GGGGGGGG
 
 	;; there's another one of these for the text over at 3D00
 
-	;; text strings 1
+	;; text string table 1
 ;offset   0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f    0123456789abcdef
-
 00003710           d4 83 48 49 47  48 40 53 43 4f 52 45 2f  |   ..HIGH@SCORE/|
 00003720  8f 2f 80 3b 80 43 52 45  44 49 54 40 40 40 2f 8f  |./.;.CREDIT@@@/.|
 00003730  2f 80 3b 80 46 52 45 45  40 50 4c 41 59 2f 8f 2f  |/.;.FREE@PLAY/./|
@@ -10444,6 +10484,8 @@ CALL R2CORNER
 000038a0  42 55 53 45 3b 3b 2f 83  2f 80 c8 02 40 52 4f 4d  |BUSE;;/./...@ROM|
 000038b0  50 3b 3b 3b 3b 3b 3b 3b  2f 83 2f 80 25 80 81 85  |P;;;;;;;/./.%...|
 000038c0  2f 81 2f 90 6e 02 53 55  50 45 52 40 50 41 43 3b  |/./.n.SUPER@PAC;|
+	;; Note "SUPER PAC-MAN" in the text above.  This was a stepping stone
+	;; between Crazy Otto and Ms. Pac-Man.
 000038d0  4d 41 4e 2f 89 2f 80 4d  41 4e 2f 89 2f 80 2f 90  |MAN/./.MAN/././.|
 000038e0  00 00 2e 80 86 8b 8d 8e  2f 8f 2f 90[30 80 40 40  |.......././.0.@@|
 000038f0  40 40 2f 94 2f 90 32 80  89 8a 8d 8e 2f 89 2f 90  |@@/./.2....././.|
@@ -10473,6 +10515,64 @@ CALL R2CORNER
 00003a30  54 4f 42 4f 4b 45 3b 3b  3b 2f 87 2f 80 ce 02 40  |TOBOKE;;;/./...@|
 00003a40  43 52 59 42 41 42 59 3b  3b 3b 3b 2f 87 2f 80     |CRYBABY;;;;/./. |
 
+; and here it is in a more readable format
+
+3713      0x83d4, "HIGH@SCORE/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3723      0x803b, "CREDIT@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3732      0x803b, "FREE@PLAY/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3741      0x028c, "PLAYER@ONE/", 		0x2f, 0x85, 0x2f, 0x10, 
+375a      0x028c, "PLAYER@TWO/", 		0x2f, 0x85, 0x2f, 0x80, 
+376a      0x0292, "GAME@@OVER/", 		0x2f, 0x81, 0x2f, 0x80, 
+377a      0x0252, "READY[/", 			0x2f, 0x89, 0x2f, 0x90, 
+3786      0x02ed, "PUSH@START@BUTTON/", 	0x2f, 0x87, 0x2f, 0x80, 
+379d      0x02af, "1@PLAYER@ONLY@/", 		0x2f, 0x87, 0x2f, 0x80, 
+37c8      0x0396, "BONUS@PUCKMAN@FOR@@@000@]^_/", 0x2f, 0x8e, 0x2f, 0x80, 
+37e9      0x02ba, "\@()*+,-.@1980/", 		0x2f, 0x83, 0x2f, 0x80, 
+37fd      0x0365, "@@@@@@@@&MS@PAC;MAN'@/", 	0x2f, 0x87, 0x2f, 0x80, 
+37fd  P   0x02c3, "CHARACTER@:@NICKNAME/", 	0x2f, 0x8f, 0x2f, 0x80, 
+3817      0x0180, "&AKABEI&/", 			0x2f, 0x81, 0x2f, 0x80, 
+3825      0x0145, "&MACKY&/", 			0x2f, 0x81, 0x2f, 0x80, 
+3832      0x0148, "&PINKY&/", 			0x2f, 0x83, 0x2f, 0x80, 
+383f      0x0148, "&MICKY&/", 			0x2f, 0x83, 0x2f, 0x80, 
+384d      0x1002, "@10@]^_/", 			0x2f, 0x9f, 0x2f, 0x80, 
+385b      0x1402, "@50@]^_/", 			0x2f, 0x9f, 0x2f, 0x80, 
+3868      0x025d, "()*+,-./", 			0x2f, 0x83, 0x2f, 0x80, 
+3875      0x02c5, "@OIKAKE;;;;/", 		0x2f, 0x81, 0x2f, 0x80, 
+3886      0x02c5, "@URCHIN;;;;;/", 		0x2f, 0x81, 0x2f, 0x80, 
+3898      0x02c8, "@MACHIBUSE;;/", 		0x2f, 0x83, 0x2f, 0x80, 
+38aa      0x02c8, "@ROMP;;;;;;;/", 		0x2f, 0x83, 0x2f, 0x80, 
+38be      0x8581, "/", 				0x2f, 0x81, 0x2f, 0x90, 
+38c4      0x026e, "SUPER@PAC;MAN/", 		0x2f, 0x89, 0x2f, 0x80, 
+38c7  P   0x8582, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
+38d1  P   0x8583, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
+38d5      0x802f, "MAN/", 			0x2f, 0x89, 0x2f, 0x80, 
+38db  P   0x8584, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
+38e6      0x8e8d, "/", 				0x2f, 0x8f, 0x2f, 0x90, 
+38e6  P   0x8e8d, "/", 				0x2f, 0x83, 0x2f, 0x90, 
+38ec      0x8030, "@@@@/", 			0x2f, 0x94, 0x2f, 0x90, 
+38f0  P   0x8e8d, "/", 				0x2f, 0x83, 0x2f, 0x90, 
+38fa      0x8e8d, "/", 				0x2f, 0x89, 0x2f, 0x90, 
+3904      0x8e8d, "/", 				0x2f, 0x89, 0x2f, 0x90, 
+390a      0x0304, "MEMORY@@OK/", 		0x2f, 0x8f, 0x2f, 0x80, 
+391a      0x0304, "BAD@@@@R@M/", 		0x2f, 0x8f, 0x2f, 0x80, 
+392a      0x0308, "1@COIN@@1@CREDIT@/", 	0x2f, 0x8f, 0x2f, 0x80, 
+3941      0x0308, "2@COINS@1@CREDIT@/", 	0x2f, 0x8f, 0x2f, 0x80, 
+3958      0x0308, "1@COIN@@2@CREDITS/", 	0x2f, 0x8f, 0x2f, 0x80, 
+396f      0x0308, "FREE@@PLAY@@@@@@@/", 	0x2f, 0x8f, 0x2f, 0x80, 
+3986      0x030a, "BONUS@@NONE/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3997      0x030a, "BONUS@/", 			0x2f, 0x8f, 0x2f, 0x80, 
+39a3      0x030c, "PUCKMAN/", 			0x2f, 0x8f, 0x2f, 0x80, 
+39b0      0x030e, "TABLE@@/", 			0x2f, 0x8f, 0x2f, 0x80, 
+39bd      0x030e, "UPRIGHT/", 			0x2f, 0x8f, 0x2f, 0x80, 
+39ca      0x020a, "000/", 			0x2f, 0x8f, 0x2f, 0x80, 
+39d3      0x016b, "&AOSUKE&/", 			0x2f, 0x85, 0x2f, 0x3d, 
+39e1  P   0x014b, "&MUCKY&/", 			0x2f, 0x85, 0x2f, 0x80, 
+39ee  P   0x016e, "&GUZUTA&/", 			0x2f, 0x87, 0x2f, 0x80, 
+39fc  P   0x014e, "&MOCKY&/", 			0x2f, 0x87, 0x2f, 0x80, 
+3a09      0x02cb, "@KIMAGURE;;/", 		0x2f, 0x85, 0x2f, 0x80, 
+3a1a      0x02cb, "@STYLIST;;;;/", 		0x2f, 0x85, 0x2f, 0x80, 
+3a2c      0x02ce, "@OTOBOKE;;;/", 		0x2f, 0x87, 0x2f, 0x80, 
+3a3d      0x02ce, "@CRYBABY;;;;/", 		0x2f, 0x87, 0x2f, 0x80, 
 
 
 	;; "Made By Namco" easter egg text
@@ -10692,6 +10792,47 @@ CALL R2CORNER
 3E40:  6B 02 54 48 45 59 40 4D 45 45 54 2F 8F 2F 80 0C  k.THEY@MEET/./..
 3E50:  03 4F 54 54 4F 4D 45 4E 2F 8F 2F 80              .OTTOMEN/./.
 
+3d00      0x0396, "@ADDITIONAL@@@@AT@@@000@]^_/", 	0x2f, 0x95, 0x2f, 0x80, 
+3d00  P   0x0396, "BONUS@PAC;MAN@FOR@@@000@]^_/", 	0x2f, 0x8e, 0x2f, 0x80, 
+3d21  P   0x033a, "\@1980@MIDWAY@MFG%CO%/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d32      0x802f, "P@@@/", 				0x2f, 0x87, 0x2f, 0x80, 
+3d3c      0x025b, "\@MIDWAY@MFG@CO@@@@/", 		0x2f, 0x81, 0x2f, 0x80, 
+3d3c  P   0x033d, "\@1980@MIDWAY@MFG%CO%/", 		0x2f, 0x83, 0x2f, 0x80, 
+
+3d57      0x02c5, ";MAD@DOG@@/", 		0x2f, 0x81, 0x2f, 0x80, 
+3d57  P   0x02c5, ";SHADOW@@@/", 		0x2f, 0x81, 0x2f, 0x80, 
+3d67      0x026e, "@@@BLINKY/", 		0x2f, 0x81, 0x2f, 0x80, 
+3d67  P   0x0165, "&BLINKY&@/", 		0x2f, 0x81, 0x2f, 0x80, 
+3d76      0x02c8, ";KILLER@@@/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d76  P   0x02c8, ";SPEEDY@@@/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d86      0x026e, "@@@PINKY@/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d86  P   0x0168, "&PINKY&@@/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d95      0x026e, "MS@PAC;MAN/", 		0x2f, 0x89, 0x2f, 0x80, 
+3d95  P   0x02cb, ";BASHFUL@@/", 		0x2f, 0x85, 0x2f, 0x80, 
+3da5      0x026e, "@@@INKY@@/", 		0x2f, 0x85, 0x2f, 0x80, 
+3da5  P   0x016b, "&INKY&@@@/", 		0x2f, 0x85, 0x2f, 0x80, 
+3db4      0x023d, "@@1980:1981@/", 		0x2f, 0x81, 0x2f, 0x80, 
+3db4  P   0x02ce, ";POKEY@@@@/", 		0x2f, 0x87, 0x2f, 0x80, 
+3dc6      0x026e, "@@@@SUE/", 			0x2f, 0x87, 0x2f, 0x80, 
+3dc4  P   0x016e, "&CLYDE&@@/", 		0x2f, 0x87, 0x2f, 0x80, 
+3dd3      0x026b, "JUNIOR@@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3dd3  P   0x02c5, ";AAAAAAAA;/", 		0x2f, 0x81, 0x2f, 0x80, 
+3de3      0x026b, "WITH@@@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3de3  P   0x0165, "&BBBBBBB&/", 		0x2f, 0x81, 0x2f, 0x80, 
+3df2      0x026b, "THE@CHASE@/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3df2  P   0x02c8, ";CCCCCCCC;/", 		0x2f, 0x83, 0x2f, 0x80, 
+3e02      0x026b, "STARRING@/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e02  P   0x0168, "&DDDDDDD&/", 		0x2f, 0x83, 0x2f, 0x80, 
+3e11      0x030c, "MS@PAC;MEN/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e11  P   0x02cb, ";EEEEEEEE;/", 		0x2f, 0x85, 0x2f, 0x80, 
+3e21      0x026b, "@@@@@@@@@/", 		0x2f, 0x85, 0x2f, 0x80, 
+3e21  P   0x016b, "&FFFFFFF&/", 		0x2f, 0x85, 0x2f, 0x80, 
+3e30      0x026b, "ACT@III&@@/", 		0x2f, 0x87, 0x2f, 0x80, 
+3e30  P   0x02ce, ";GGGGGGGG;/", 		0x2f, 0x87, 0x2f, 0x80, 
+3e40      0x026b, "THEY@MEET/", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e40  P   0x016e, "&HHHHHHH&/", 		0x2f, 0x87, 0x2f, 0x80, 
+3e4f      0x030c, "OTTOMEN/", 			0x2f, 0x8f, 0x2f, 0x80, 
+3e4f  P   0x030c, "PAC;MAN/", 			0x2f, 0x8f, 0x2f, 0x80, 
 
 	    ;; new code for ms-pacman.  used during demo mode, when there are no credits
 
@@ -11246,6 +11387,7 @@ CALL R2CORNER
 81e8  ff ff ff ff  ff ff ff ff
 
 ; lookup table.  used in #361F for sprite movement
+; these contain pointers to the step program/codes to be run
 
 81f0  51 82	; #8251		; 1st intermission
 81f2  a3 82	; #82A3
@@ -11305,40 +11447,53 @@ CALL R2CORNER
 
 8250  ff       	; no data
 
+
+; commands: (functionality TBD)
+;	cmd	    opc 	bytes	param fcn	opc fcn
+	LOOP      =  F0	; 	3	?		repeat this N times, perhaps?
+	SETPOS	  =  F1	; 	2	position?	TBD
+	SETN  	  =  F2	; 	1	value		TBD
+	SETCHAR   =  F3	; 	2	table ptr	switch to the specified sprite code table?
+	-         =  F4
+	PLAYSOUND =  F5	;	1	sound code	play a sound (eg 10=ghost bump)
+	PAUSE     =  F6	;	-	-		pause for N ticks?
+	SHOWACT   =  F7	;	
+	CLEARACT  =  F8	; 	-	-		clear the act # from the screen
+	END       =  FF
+	
+
 ; data for 1st intermission, part 1
 
-8251:  F1 00 00 
-8254:  F3 75 86			; #8675
-8257:  F2 01 
-8259:  F0 00 00 16
-825D:  F1 BD 52
-8260:  F2 28
-8262:  F6
-8263:  F2 16
-8265:  F0 00 00 16
-8269:  F2 16
-826B:  F6
-826C:  F1 FF 54
-826F:  F3 14 86			; #8614
-8272:  F2 7F
-8274:  F0 F0 00 09
-8278:  F2 7F
-827A:  F0 F0 00 09
-827E:  F1 00 7F
-8281:  F3 1D 86			; #861D
-8284:  F2 75
-8286:  F0 10 00 09
-828A:  F2 04
-828C:  F0 10
-828E:  F0 09
-8290:  F3 26 86			; #8626
-8293:  F2 30
-8295:  F0 00
-8297:  F0 09
-8299:  F3 1D 86			; #861D
-829C:  F2 10
-829E:  F0 00 00 09
-82A2:  FF			; end code
+8251:  F1 00 00 		; SETPOS	00 00	
+8254:  F3 75 86			; SETCHAR	#8675
+8257:  F2 01 			; SETN		01
+8259:  F0 00 00 		; LOOP		00 00
+825D:  F1 BD 52			; SETPOS	BD 52
+8260:  F2 28			; SETN		28
+8262:  F6			; PAUSE
+8263:  F2 16			; SETN		16
+8265:  F0 00 00 16		; LOOP		00 00 16
+8269:  F2 16			; SETN		16
+826B:  F6			; PAUSE
+826C:  F1 FF 54			; SETPOS	FF 54
+826F:  F3 14 86			; SETCHAR	#8614	
+8272:  F2 7F			; SETN		7F
+8274:  F0 F0 00 09		; LOOP		F0 00 09
+8278:  F2 7F			; SETN		7F
+827A:  F0 F0 00 09		; LOOP		F0 00 09
+827E:  F1 00 7F			; SETPOS	00 7F
+8281:  F3 1D 86			; SETCHAR	#861D
+8284:  F2 75			; SETN		75
+8286:  F0 10 00 09		; LOOP		10 00 09
+828A:  F2 04			; SETN		04
+828C:  F0 10 F0 09		; LOOP		10 F0 09
+8290:  F3 26 86			; SETCHAR	#8626
+8293:  F2 30			; SETN		30
+8295:  F0 00 F0 09		; LOOP		00 F0 09
+8299:  F3 1D 86			; SETCHAR	#861D
+829C:  F2 10			; SETN		10
+829E:  F0 00 00 09		; LOOP		00 00 09
+82A2:  FF			; END 
 
 ; data for 1st intermission, part 2
 
@@ -11441,43 +11596,63 @@ CALL R2CORNER
 8390:  F0 00 00 16
 8394:  FF			; end code
 
-; 2nd intermission data, part 1
 
-; OTTO CODE:
+; CODE from CRAZY OTTO actual source: (Rosetta Stone) (tidied up)
+; 2nd intermission data, part 1
 /*
-!    BYTE SETPOS,!  0FFH,34H
+!    BYTE SETPOS,   0FFH,34H
 !    BYTE SETCHAR
-!    WORD !     !    RIGHT_OTTO
-!   BYTE SETN,!    7FH,PAUSE
-!   BYTE SETN,!    24H,PAUSE
-!    BYTE SETN,!    68H,LOOP,0D8H,00,09
-!   BYTE SETN,!    7FH,PAUSE
-!    BYTE SETN,!    18H,PAUSE
-!    BYTE SETPOS,!  00H,094H
+!    WORD           RIGHT_OTTO
+!    BYTE SETN,     7FH,PAUSE
+!    BYTE SETN,     24H,PAUSE
+!    BYTE SETN,     68H,LOOP,0D8H,00,09
+!    BYTE SETN,     7FH,PAUSE
+!    BYTE SETN,     18H,PAUSE
+!    BYTE SETPOS,   00H,094H
 !    BYTE SETCHAR
-!    WORD!!          LEFT_ANNA
-!    BYTE SETN,!    68H,LOOP,028H,00,09
-!   BYTE SETN,!    7FH,PAUSE
-!    BYTE SETPOS,!  0FCH,7FH
+!    WORD           LEFT_ANNA
+!    BYTE SETN,     68H,LOOP,028H,00,09
+!    BYTE SETN,     7FH,PAUSE
+!    BYTE SETPOS,   0FCH,7FH
 !    BYTE SETCHAR
-!    WORD !     !    RIGHT_OTTO
-!    BYTE SETN,!    18H,PAUSE
-!    BYTE SETN,!    68H,LOOP,0D8H,0,09
-!   BYTE SETN,!    7FH,PAUSE
-!    BYTE SETN,!    18H,PAUSE
-!    BYTE SETPOS,!  00H,054H
+!    WORD           RIGHT_OTTO
+!    BYTE SETN,     18H,PAUSE
+!    BYTE SETN,     68H,LOOP,0D8H,0,09
+!    BYTE SETN,     7FH,PAUSE
+!    BYTE SETN,     18H,PAUSE
+!    BYTE SETPOS,   00H,054H
 !    BYTE SETCHAR
-!    WORD!!          LEFT_ANNA
-!    BYTE SETN,!    20H,LOOP,070H,00,09
-!    BYTE SETPOS,!  0FFH,0B4H
+!    WORD           LEFT_ANNA
+!    BYTE SETN,     20H,LOOP,070H,00,09
+!    BYTE SETPOS,   0FFH,0B4H
 !    BYTE SETCHAR
-!    WORD!!          RIGHT_OTTO
-!    BYTE SETN,!    10H,PAUSE
+!    WORD           RIGHT_OTTO
+!    BYTE SETN,     10H,PAUSE
 */
-8395:  F2 5A
-8397:  F6
+
+
+; commands: (functionality TBD)
+;	cmd	    opc 	bytes	param fcn	opc fcn
+	LOOP      =  F0	; 	3	?		repeat this N times, perhaps?
+	SETPOS	  =  F1	; 	2	position?	TBD
+	SETN  	  =  F2	; 	1	value		TBD
+	SETCHAR   =  F3	; 	2	table ptr	switch to the specified sprite code table?
+	-         =  F4
+	PLAYSOUND =  F5	;	1	sound code	play a sound (eg 10=ghost bump)
+	PAUSE     =  F6	;	-	-		pause for N ticks?
+	SHOWACT   =  F7	;	
+	CLEARACT  =  F8	; 	-	-		clear the act # from the screen
+	END       =  FF
+	
+; 2nd intermission data, part 1
+;  NOTE: this is the segment that had the above source code published.
+;	 That was a rosetta stone for figuring out the animation code system
+;	 (work in progress)
+
+8395:  F2 5A			; SETN( 5A )
+8397:  F6			; PAUSE
 8398:  F1 FF 34			; SETPOS, FF, 34
-839B:  F3 14 86			; SETCHAR ( RIGHT_OTTO )
+839B:  F3 14 86			; SETCHAR ( RIGHT_OTTO )  (sprite codes)
 839E:  F2 7F			; SETN( 7f )
 83A0:  F6			; PAUSE
 83A1:  F2 24			; SETN( 24 )
@@ -11499,21 +11674,21 @@ CALL R2CORNER
 83C5:  F2 18			; SETN( 18 )
 83C7:  F6			; PAUSE
 83C8:  F2 68			; SETN( 68 )
-83CA:  F0 D8 00 09		; LOOP ( 28, d8, 0, 09 )
+83CA:  F0 D8 00 09		; LOOP ( d8, 0, 09 )
 83CE:  F2 7F			; SETN( 7f ) 
 83D0:  F6			; PAUSE
 83D1:  F2 18			; SETN( 18 )
 83D3:  F6			; PAUSE
 83D4:  F1 00 54			; SETPOS( 00 54 ) 
-83D7:  F3 41 86			; SETCHAR( )
-83DA:  F2 20
-83DC:  F0 70 00 09
+83D7:  F3 41 86			; SETCHAR( 8641 )
+83DA:  F2 20			; SETN( 20 )
+83DC:  F0 70 00 09		; LOOP
 83E0:  F1 FF B4			; SETPOS( ff, 04 )
 83E3:  F3 14 86			; SETCHAR( RIGHT_OTTO )
 83E6:  F2 10			; SETN( 10 )
-83E8:  F6			
+83E8:  F6			; PAUSE
 83E9:  F2 24			; SETN( 24 )
-83EB:  F0 90 00 09
+83EB:  F0 90 00 09		; LOOP( 90 0 09)
 83EF:  FF			; end code
 
 ; data for 2nd intermission, part 2
@@ -11714,12 +11889,12 @@ CALL R2CORNER
 857F:  F2 01
 8581:  F0 00 00 16
 8585:  F1 AD 62
-8588:  F2 39
-858A:  F6
-858B:  F7
+8588:  F2 39			
+858A:  F6			; pause
+858B:  F7			; display text
 858C:  F2 1E
 858E:  F6
-858F:  F8
+858F:  F8			; clear act number
 8590:  F1 00 00
 8593:  FF			; end code
 
@@ -11790,17 +11965,22 @@ CALL R2CORNER
 
 ; used in act 1
 
+; Pac:
 8614:  1B 1B 19 19 1B 1B 32 32 FF	; sprite codes for pac man and ms pac man
 861D:  9B 9B 99 99 9B 9B B2 B2 FF	; 
 8626:  6E 6E 5A 5A 6E 6E 72 72 FF	;
+
 862F:  EE EE DA DA EE EE F2 F2 FF 	;
 8638:  37 37 2D 2D 37 37 2F 2F FF 	; sprite codes for ms pac man
+;      r  r  R  R  u  u  rc rc
 
 ; used in attract mode to control ms pac moving under marquee
 
+; moving left
 8641:  B7 B7 AD AD B7 B7 AF AF FF
 
-864A:  36 36 F1 F1 36 36 F3 F3 FF	; sprite codes for ms pac man
+864A:  36 36 F1 F1 36 36 F3 F3 FF	; ms pac man moving up at the end
+; moving down?
 8653:  34 34 31 31 34 34 33 33 FF	; sprite codes for ms pac man
 
 ; used in act 1
@@ -13200,6 +13380,7 @@ CALL R2CORNER
 000097e0  20 20 43 4f  52 50 4f 52  41 54 49 4f  4e 20 20 20    CORPORATION
 000097f0  48 65 6c 6c  6f 2c 20 4e  61 6b 61 6d  75 72 61 21  Hello, Nakamura!
 
+; above is the easter egg that GCC put into the rom.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
