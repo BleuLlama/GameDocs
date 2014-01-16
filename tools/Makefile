@@ -33,10 +33,10 @@ stringer: $(STRINGER_OBJS)
 test: stringer pactxt msptxt
 
 pactxt:
-	./stringer 3000 ~/sw/share/roms/pacman/pacman.6j >> pac.txt
+	./stringer 3000 ASM ~/sw/share/roms/pacman/pacman.6j >> pac.txt
 
 msptxt:
-	./stringer 3000 ~/sw/share/roms/mspacmab/boot4 >> msp.txt
+	./stringer 3000 ASM ~/sw/share/roms/mspacmab/boot4 >> msp.txt
 
 
 ########################################

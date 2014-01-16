@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h> /* for strtol() */
 #include <ctype.h>  /* for isprint() */
+#include <string.h> /* for strcmp() */
 
 /* Pac-man supports individual color per character, but it is never used, 
    so we can ignore that. */
@@ -47,47 +48,50 @@
 	Then it prints out the entry as described above, in asm source
 */
 
+#define kDumpFormatList (0)
+#define kDumpFormatAsm  (1)
 
+int dumpFormat = kDumpFormatList;
 
 /* printEntry
 **	print out a single entry starting at the passed in pos in the buf
 */
 void printEntry( unsigned char * buf, long startAddr, long pos )
 {
-#ifdef ASSEMBLABLE
-	/* proper Z80 asm */
-	printf( ".org   0x%04lx\n", startAddr + pos );
-	printf( "        .word 0x%02x%02x\n", buf[pos+1] & 0x0ff, buf[pos] & 0x0ff );
-	pos += 2;
-	printf( "        .ascii \"" );
-	while( isprint( buf[pos] )) {
-		printf("%c", buf[pos] & 0x0ff );
-		pos++;
-	}
-	pos--; /* go back one... */
-	printf( "\"\n" );
-	printf( "        .byte 0x%02x, ", buf[pos++] & 0x0ff );
-	printf( "0x%02x, ", buf[pos++] & 0xff );
-	printf( "0x%02x, ", buf[pos++] & 0xff );
-	printf( "0x%02x\n\n", buf[pos++] & 0xff );
-#else
-	/* this is the format I'm using in my mspac.asm disassembly */
+	if( dumpFormat == kDumpFormatAsm ) {
+		/* proper Z80 asm */
+		printf( ".org   0x%04lx\n", startAddr + pos );
+		printf( "        .word 0x%02x%02x\n", buf[pos+1] & 0x0ff, buf[pos] & 0x0ff );
+		pos += 2;
+		printf( "        .ascii \"" );
+		while( isprint( buf[pos] )) {
+			printf("%c", buf[pos] & 0x0ff );
+			pos++;
+		}
+		pos--; /* go back one... */
+		printf( "\"\n" );
+		printf( "        .byte 0x%02x, ", buf[pos++] & 0x0ff );
+		printf( "0x%02x, ", buf[pos++] & 0xff );
+		printf( "0x%02x, ", buf[pos++] & 0xff );
+		printf( "0x%02x\n\n", buf[pos++] & 0xff );
+	} else {
+		/* this is the format I'm using in my mspac.asm disassembly */
 
-	printf( "%04lx    ", startAddr + pos );
-	printf( "0x%02x%02x, \"", buf[pos+1] & 0xff, buf[pos] & 0xff );
-	pos += 2;
-	while( isprint( buf[pos] )) {
-		printf("%c", buf[pos] & 0x0ff );
-		pos++;
+		printf( "%04lx    ", startAddr + pos );
+		printf( "0x%02x%02x, \"", buf[pos+1] & 0xff, buf[pos] & 0xff );
+		pos += 2;
+		while( isprint( buf[pos] )) {
+			printf("%c", buf[pos] & 0x0ff );
+			pos++;
+		}
+		pos--; /* go back one... */
+		printf( "\", \t\t\t" );
+		printf( "0x%02x, ", buf[pos++] );
+		printf( "0x%02x, ", buf[pos++] );
+		printf( "0x%02x, ", buf[pos++] );
+		printf( "0x%02x, ", buf[pos++] );
+		printf( "\n" );
 	}
-	pos--; /* go back one... */
-	printf( "\", \t\t\t" );
-	printf( "0x%02x, ", buf[pos++] );
-	printf( "0x%02x, ", buf[pos++] );
-	printf( "0x%02x, ", buf[pos++] );
-	printf( "0x%02x, ", buf[pos++] );
-	printf( "\n" );
-#endif
 }
 
 
@@ -218,8 +222,8 @@ int main( int argc, char ** argv )
 	long addr = 0;
 
 	/* check arg count */
-	if( argc != 3 ) {
-		fprintf( stderr, "ERROR: usage: stringer startaddr filename\n" );
+	if( argc != 4 ) {
+		fprintf( stderr, "ERROR: usage: stringer addr ASM|LIST filename\n" );
 		return -1;
 	}
 
@@ -230,12 +234,24 @@ int main( int argc, char ** argv )
 		return -2;
 	}
 
+	/* check dump format */
+	if( !strcmp( argv[2], "ASM" )) {
+		printf( "Dumping in ASM format.\n" );
+		dumpFormat = kDumpFormatAsm;
+	} else if( !strcmp( argv[2], "LIST" )) {
+		dumpFormat = kDumpFormatList;
+		printf( "Dumping in LIST format.\n" );
+	} else {
+		fprintf( stderr, "ERROR: %s: not one of ASM or LIST\n", argv[2] );
+		return -20;
+	}
+
 	/* check filename parameter */
-	if( !fileOk( argv[2] )) {
-		fprintf( stderr, "ERROR: %s: can't open file.\n", argv[2] );
+	if( !fileOk( argv[3] )) {
+		fprintf( stderr, "ERROR: %s: can't open file.\n", argv[3] );
 		return -3;
 	}
 
 	/* okay. just go. */
-	return processDump( addr, argv[2] );
+	return processDump( addr, argv[3] );
 }
