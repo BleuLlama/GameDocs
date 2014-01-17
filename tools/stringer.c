@@ -64,11 +64,12 @@ void printEntry( unsigned char * buf, long startAddr, long pos )
 		printf( "        .word 0x%02x%02x\n", buf[pos+1] & 0x0ff, buf[pos] & 0x0ff );
 		pos += 2;
 		printf( "        .ascii \"" );
-		while( isprint( buf[pos] )) {
+
+		while( isprint( buf[pos] ) && buf[pos] != 0x2f ) {
+			/* 0x2f is printable. it's a slash. oops */
 			printf("%c", buf[pos] & 0x0ff );
 			pos++;
 		}
-		pos--; /* go back one... */
 		printf( "\"\n" );
 		printf( "        .byte 0x%02x, ", buf[pos++] & 0x0ff );
 		printf( "0x%02x, ", buf[pos++] & 0xff );
@@ -80,11 +81,11 @@ void printEntry( unsigned char * buf, long startAddr, long pos )
 		printf( "%04lx    ", startAddr + pos );
 		printf( "0x%02x%02x, \"", buf[pos+1] & 0xff, buf[pos] & 0xff );
 		pos += 2;
-		while( isprint( buf[pos] )) {
+		while( isprint( buf[pos] ) && buf[pos] != 0x2f ) {
+			/* 0x2f is printable. it's a slash. oops */
 			printf("%c", buf[pos] & 0x0ff );
 			pos++;
 		}
-		pos--; /* go back one... */
 		printf( "\", \t\t\t" );
 		printf( "0x%02x, ", buf[pos++] );
 		printf( "0x%02x, ", buf[pos++] );
