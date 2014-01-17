@@ -54,6 +54,9 @@
 ;;
 ;;				THANKS!
 
+;; 2014-01-16
+;;	Completely documented DrawText (2c5e)
+;;
 ;; 2014-01-12
 ;;	Text string decodings (0x3713, 0x3d00) for readibility
 ;;	Animation code engine at 0x34a9
@@ -8463,10 +8466,15 @@ CALL R2CORNER
 2c5c  27        daa
 2c5d  c9        ret
 
+	;; 	DrawText
 
         ;;   Renders messages from a table with coordinates and message data
         ;;   B = message # from table
-	;;   B > #80 indicates to erase characters instead of draw them
+	;;   B & 0x80 indicates to erase characters instead of draw them
+
+	;; other flags:
+	;;	top bit of address word & 0x80 -> draw in top or bottom two rows
+	;;	first color & 0x80 -> use this color for the entire string 
 
 ; format of the table data:
 ;   .byte (offs l), (offs h)	; so an offset of #0234 would be #34, #02
@@ -8477,21 +8485,37 @@ CALL R2CORNER
 ;   .byte #2f			; termination with 2f
 ;   .byte colordata:
 ;	if the color data byte's high bit (#80) is set, the entire string
-;	gets colored with (colordata & 0x7f)
+;	gets colored with (colordata & 0x7f) 
+;		no termination, just the one entry.
 ;	if the color data byte's high bit is not set, then:
 ;	.byte 	ncolors		; number of bytes to set color
 ;	.byte	color1		; first character's color
 ;	.byte	color2		; second character's color
 ;		...		; etc
+;	 (no termination - just as many entries as there were characters)
 
+DrawText:
+	; drawText( b )  ; b is index
 2c5e  21a536    ld      hl,#36a5	; load HL with the text string lookup table
 2c61  df        rst     #18		; (hl+2*b) -> hl
+
+	; 1. get start offset into vid/color buffer
+	; e = (hl++) ; d = (hl)		; load two bytes in as a pointer
+	; indexOffset = de
 2c62  5e        ld      e,(hl)		; load E with value from table
 2c63  23        inc     hl		; next table entry
 2c64  56        ld      d,(hl)  	; DE contains start offset
+
+	; 2. use offset for start of color, save to stack
+	; ix = 0x4400 + indexOffset
 2c65  dd210044  ld      ix,#4400	; load IX with start of color RAM
 2c69  dd19      add     ix,de		; add offset to calculate start pos in CRAM
 2c6b  dde5      push    ix		; save to stack for use later (#2C93)
+
+	; 3. use offset for start of character ram
+	; ix = characterRam + indexOffset
+	; offsetPerCharacter = -1	; de
+	; if (hl) & 0x80 then offsetPerCharacter = -0x20
 2c6d  1100fc    ld      de,#fc00	; load DE with offset for VRAM
 2c70  dd19      add     ix,de		; add to calculate start position in VRAM
 2c72  11ffff    ld      de,#ffff	; load DE with offset for top & bottom lines (offset equals negative 1)
@@ -8503,16 +8527,28 @@ CALL R2CORNER
 	; that is to say that it actually ends up drawing up around C000
 	; instead of 4000.  A patch is below as HACK12
 
+	; (this skips the offsetPerCharacter with -20 if necessary)
 2c77  2003      jr      nz,#2c7c        ; yes, skip next step
-
 2c79  11e0ff    ld      de,#ffe0	; no, load DE with offset for normal text (equals negative #20)
 
+	; 4. determine special entry, go to 2cac for that
+	; hl++
+	; a = stringToDraw * 2
+	; if( carry) goto BlankTextDraw	;AKA  if( stringToDraw# & 0x80) then goto BlankTextDraw
+BlankTextDrawCheck:
 2c7c  23        inc     hl		; next table entry
 2c7d  78        ld      a,b		; A := B.  B was preloaded with the code # of the text to display
 2c7e  010000    ld      bc,#0000	; clear BC
 2c81  87        add     a,a		; A : = A * 2.  Is this a special entry ?
 2c82  3828      jr      c,#2cac         ; special draw for entries 80+
 
+textRenderLoop0:
+	; ch = current character  	; 'a' = (hl)
+	; if ch == 0x2f, goto SingleOrMultiColorCheck:
+	; *characterVram = ch		; ram[ix+0] = 'a'
+	; characterVram += de		; (+= but it really subtracts 1 or 0x20, contents of 'de')
+	; nchars ++  			; 'b'++
+	; goto textRenderLoop0
 2c84  7e        ld      a,(hl)		; load A with next character
 2c85  fe2f      cp      #2f		; == #2F ? (end of text code)
 2c87  2809      jr      z,#2c92         ; yes, done with VRAM, skip ahead to color
@@ -8523,30 +8559,50 @@ CALL R2CORNER
 2c8f  04        inc     b		; increment counter
 2c90  18f2      jr      #2c84           ; loop
 
+SingleOrMultiColorCHeck:
+	; ix = startColorRamPos
 2c92  23        inc     hl		; next table entry
-
 2c93  dde1      pop     ix		; get CRAM start pos
+
+	; color = *colorToUse
+	; if (color) is > 80, goto TextSingleColorRender
 2c95  7e        ld      a,(hl)		; load A with color
 2c96  a7        and     a		; > #80 ?
 2c97  faa42c    jp      m,#2ca4		; yes, skip ahead
 
+TextMultiColorRender:
+	; color = *colorToUse
+	; colorRam[ix] = color;
+	; colorToUse++
+	; move ix to the next screen position ( -=1 or -=0x20)
+	; b--; if b>0 then goto TextMultiColorRender
+	; return
 2c9a  7e        ld      a,(hl)		; else load A with color
 2c9b  dd7700    ld      (ix+#00),a	; color the screen position Color RAM
 2c9e  23        inc     hl		; next color
 2c9f  dd19      add     ix,de		; calc next CRAM pos
 2ca1  10f7      djnz    #2c9a           ; loop until b==0
-
 2ca3  c9        ret     		; return
 
-	;; same as above, but all the same color
 
+	;; same as above, but all the same color
+TextSingleColorRender:
+	; colorRam[ix] = color
+	; move ix to the next screen position( -=1 or -=0x20)
+	; b--; if b>0 then goto TextSingleColorRender
+	; return
 2ca4  dd7700    ld      (ix+#00),a	; drop in CRAM
 2ca7  dd19      add     ix,de		; calc next CRAM pos
 2ca9  10f9      djnz    #2ca4           ; loop until b==0
 2cab  c9        ret     
 
-	;; message # > 80 (erase prev message?) use 2nd color code
-
+	;; message # > 80 se 2nd color code
+BlankTextDraw:
+	; character = *characterToDraw
+	; if( color = 0x2f ) goto FinishUpBlankTextDraw
+	; characterRam[ix] = 0x40 ("@", which is ' ' in Pac-Man)
+	; characterToDraw++
+	; b++
 2cac  7e        ld      a,(hl)		; read next char
 2cad  fe2f      cp      #2f		; are we done ?
 2caf  280a      jr      z,#2cbb         ; yes, done with vram
@@ -8557,6 +8613,9 @@ CALL R2CORNER
 2cb8  04        inc     b		; inc char count
 2cb9  18f1      jr      #2cac           ; loop
 
+FinishUpBlankTextDraw:
+	; while (*hl != 0x2f) hl++
+	; goto SingleOrMultiColorCheck +1
 2cbb  23        inc     hl		; next char
 2cbc  04        inc     b		; inc char count
 2cbd  edb1      cpir    		; loop until [hl] = 2f
