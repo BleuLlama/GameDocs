@@ -54,6 +54,10 @@
 ;;
 ;;				THANKS!
 
+;; 2014-01-18
+;;	tried to document HACK2 (standard speedup hack) but it makes no sense
+;;	added more info about #f2 LOOP and ANIMATIONS in general
+;;
 ;; 2014-01-16
 ;;	Completely documented DrawText (2c5e)
 ;;
@@ -2450,7 +2454,7 @@ JP ATTRACT
 
 
 ; difficulty table - Time the ghosts stay blue when pacman eats a big pill
-; set up at #076D 
+;		-- do not use with l set up at #076D 
 
 0861  c0 03				; 03c0 (960) 8 seconds (not used)
 0863  48 03				; 0348 (840) 7 seconds (not used)
@@ -4988,10 +4992,19 @@ JP DOFRUIT
 
 180b  be        cp      (hl)		; is pacman slow due to the eating of a pill ?
 
-
 	; Hack code
-	; set 0xbe to 0x01 for fast cheat.	; HACK2
+	; set 0xbe to 0x01 for fast cheat.	; HACK2 (1 of 2)
 	; 180b  01
+	;		i'm not entirely sure how this works.  it mangles
+	;		the opcodes starting at 180b to be:
+	;
+	;	    080b 01ca11    ld      bc,11cah
+	;	    080e 1835      jr      1845h
+	;	    0810 c9        ret     
+	;
+	;	which makes little to no sense, but it works
+
+
 	; end hack code
 
 180c  ca1118    jp      z,#1811		; no, skip ahead
@@ -6240,7 +6253,7 @@ JP EATFRUIT
 	; 1fde  35        dec     (hl)      
 	; 1fdf  c9        ret
      
-	; set to 0xbd for fast cheat checksum check hack  ; HACK2
+	; set to 0xbd for fast cheat checksum check hack  ; HACK2 (2 of 2)
 
 	; 1ffd  00        nop     
 	; 1ffe  5d e1
@@ -6297,7 +6310,7 @@ JP EATFRUIT
 
 ; converts pac-mans sprite position into a grid position
 ; HL has sprite position at start, grid position at end
-; same as "call #0065"
+; 0065 jumps to here. 
 
 202D: F5            push af		; save AF
 202E: C5            push bc		; save BC
@@ -9984,7 +9997,7 @@ FinishUpBlankTextDraw:
 343a  ca9c34    jp      z,#349c		; yes, skip ahead
 
 343d  ef        rst     #28		; no, insert task to draw text "THEY MEET"
-343e  1c 32				; 
+343e  1c 32				; 1c = draw text,  32 = string code
 3440  3e01      ld      a,#01		; load A with code for "1"
 3442  32ac42    ld      (#42ac),a	; write text "1" to screen
 3445  3e16      ld      a,#16		; load A with code for color = white
@@ -9999,7 +10012,7 @@ FinishUpBlankTextDraw:
 3454  ca9c34    jp      z,#349c		; yes, skip ahead
 
 3457  ef        rst     #28		; no, insert task to display text "THE CHASE"
-3458  1c 17
+3458  1c 17				; 1c = draw text,  17 = string code
 345a  3e02      ld      a,#02		; load A with code for "2"
 345c  32ac42    ld      (#42ac),a	; write text "2" to screen
 345f  3e16      ld      a,#16		; load A with code for color = white
@@ -10014,7 +10027,8 @@ FinishUpBlankTextDraw:
 346e  ca9c34    jp      z,#349c		; yes, skip ahead
 
 3471  ef        rst     #28		; insert task to display text "JUNIOR"
-3472  1c 15
+3472  1c 15				; 1c = draw text,  15 = string code
+	; print "ACT **3**"
 3474  3e03      ld      a,#03		; load A with code for "3"
 3476  32ac42    ld      (#42ac),a	; write text "3" to screen
 3479  3e16      ld      a,#16		; load A with code for color = white
@@ -10047,7 +10061,10 @@ FinishUpBlankTextDraw:
 3497  0e54      ld      c,#54		; load C with offset for moving MS pac man
 3499  c39c34    jp      #349c		; begin moving ms pac man across marquee
 
-; main routine to handle intermissions and attract mode
+
+
+; main routine to handle intermissions and attract mode ANIMATIONS
+
 
 349c  3a004f    ld      a,(#4f00)	; load A with intermission indicator
 349f  a7        and     a		; is the intermission running ?
@@ -10056,7 +10073,7 @@ FinishUpBlankTextDraw:
 34a3  0606      ld      b,#06		; B := #06
 34a5  dd210c4f  ld      ix,#4f0c	; load IX with stack.  This holds the list of addresses for the data
 
-; get the next animation code.. (codes return to here when done)
+; get the next ANIMATION code.. (codes return to here when done)
 34a9  dd6e00    ld      l,(ix+#00)
 34ac  dd6601    ld      h,(ix+#01)	; load HL with stack data.  this is an address for data
 34af  7e        ld      a,(hl)		; load data
@@ -10492,7 +10509,7 @@ FinishUpBlankTextDraw:
 36fb  9739	; #3997	; 2b        BONUS
 36fd  b039	; #39B0	; 2c        TABLE  
 36ff  bd39	; #39BD	; 2d        UPRIGHT
-3701  ca39	; #39CA	; 2e        000
+3701  ca39	; #39CA	; 2e        000		for test screen
 3703  a53d	; #3DA5	; 2f        INKY    
 3705  213e	; #3E21	; 30        "        "
 					FFFFFFFF
@@ -10576,62 +10593,62 @@ FinishUpBlankTextDraw:
 
 ; and here it is in a more readable format
 
-3713      0x83d4, "HIGH@SCORE/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3723      0x803b, "CREDIT@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3732      0x803b, "FREE@PLAY/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3741      0x028c, "PLAYER@ONE/", 		0x2f, 0x85, 0x2f, 0x10, 
-375a      0x028c, "PLAYER@TWO/", 		0x2f, 0x85, 0x2f, 0x80, 
-376a      0x0292, "GAME@@OVER/", 		0x2f, 0x81, 0x2f, 0x80, 
-377a      0x0252, "READY[/", 			0x2f, 0x89, 0x2f, 0x90, 
-3786      0x02ed, "PUSH@START@BUTTON/", 	0x2f, 0x87, 0x2f, 0x80, 
-379d      0x02af, "1@PLAYER@ONLY@/", 		0x2f, 0x87, 0x2f, 0x80, 
-37c8      0x0396, "BONUS@PUCKMAN@FOR@@@000@]^_/", 0x2f, 0x8e, 0x2f, 0x80, 
-37e9      0x02ba, "\@()*+,-.@1980/", 		0x2f, 0x83, 0x2f, 0x80, 
-37fd      0x0365, "@@@@@@@@&MS@PAC;MAN'@/", 	0x2f, 0x87, 0x2f, 0x80, 
-37fd  P   0x02c3, "CHARACTER@:@NICKNAME/", 	0x2f, 0x8f, 0x2f, 0x80, 
-3817      0x0180, "&AKABEI&/", 			0x2f, 0x81, 0x2f, 0x80, 
-3825      0x0145, "&MACKY&/", 			0x2f, 0x81, 0x2f, 0x80, 
-3832      0x0148, "&PINKY&/", 			0x2f, 0x83, 0x2f, 0x80, 
-383f      0x0148, "&MICKY&/", 			0x2f, 0x83, 0x2f, 0x80, 
-384d      0x1002, "@10@]^_/", 			0x2f, 0x9f, 0x2f, 0x80, 
-385b      0x1402, "@50@]^_/", 			0x2f, 0x9f, 0x2f, 0x80, 
-3868      0x025d, "()*+,-./", 			0x2f, 0x83, 0x2f, 0x80, 
-3875      0x02c5, "@OIKAKE;;;;/", 		0x2f, 0x81, 0x2f, 0x80, 
-3886      0x02c5, "@URCHIN;;;;;/", 		0x2f, 0x81, 0x2f, 0x80, 
-3898      0x02c8, "@MACHIBUSE;;/", 		0x2f, 0x83, 0x2f, 0x80, 
-38aa      0x02c8, "@ROMP;;;;;;;/", 		0x2f, 0x83, 0x2f, 0x80, 
-38be      0x8581, "/", 				0x2f, 0x81, 0x2f, 0x90, 
-38c4      0x026e, "SUPER@PAC;MAN/", 		0x2f, 0x89, 0x2f, 0x80, 
-38c7  P   0x8582, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
-38d1  P   0x8583, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
-38d5      0x802f, "MAN/", 			0x2f, 0x89, 0x2f, 0x80, 
-38db  P   0x8584, "@/", 			0x2f, 0x83, 0x2f, 0x90, 
-38e6      0x8e8d, "/", 				0x2f, 0x8f, 0x2f, 0x90, 
-38e6  P   0x8e8d, "/", 				0x2f, 0x83, 0x2f, 0x90, 
-38ec      0x8030, "@@@@/", 			0x2f, 0x94, 0x2f, 0x90, 
-38f0  P   0x8e8d, "/", 				0x2f, 0x83, 0x2f, 0x90, 
-38fa      0x8e8d, "/", 				0x2f, 0x89, 0x2f, 0x90, 
-3904      0x8e8d, "/", 				0x2f, 0x89, 0x2f, 0x90, 
-390a      0x0304, "MEMORY@@OK/", 		0x2f, 0x8f, 0x2f, 0x80, 
-391a      0x0304, "BAD@@@@R@M/", 		0x2f, 0x8f, 0x2f, 0x80, 
-392a      0x0308, "1@COIN@@1@CREDIT@/", 	0x2f, 0x8f, 0x2f, 0x80, 
-3941      0x0308, "2@COINS@1@CREDIT@/", 	0x2f, 0x8f, 0x2f, 0x80, 
-3958      0x0308, "1@COIN@@2@CREDITS/", 	0x2f, 0x8f, 0x2f, 0x80, 
-396f      0x0308, "FREE@@PLAY@@@@@@@/", 	0x2f, 0x8f, 0x2f, 0x80, 
-3986      0x030a, "BONUS@@NONE/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3997      0x030a, "BONUS@/", 			0x2f, 0x8f, 0x2f, 0x80, 
-39a3      0x030c, "PUCKMAN/", 			0x2f, 0x8f, 0x2f, 0x80, 
-39b0      0x030e, "TABLE@@/", 			0x2f, 0x8f, 0x2f, 0x80, 
-39bd      0x030e, "UPRIGHT/", 			0x2f, 0x8f, 0x2f, 0x80, 
-39ca      0x020a, "000/", 			0x2f, 0x8f, 0x2f, 0x80, 
-39d3      0x016b, "&AOSUKE&/", 			0x2f, 0x85, 0x2f, 0x3d, 
-39e1  P   0x014b, "&MUCKY&/", 			0x2f, 0x85, 0x2f, 0x80, 
-39ee  P   0x016e, "&GUZUTA&/", 			0x2f, 0x87, 0x2f, 0x80, 
-39fc  P   0x014e, "&MOCKY&/", 			0x2f, 0x87, 0x2f, 0x80, 
-3a09      0x02cb, "@KIMAGURE;;/", 		0x2f, 0x85, 0x2f, 0x80, 
-3a1a      0x02cb, "@STYLIST;;;;/", 		0x2f, 0x85, 0x2f, 0x80, 
-3a2c      0x02ce, "@OTOBOKE;;;/", 		0x2f, 0x87, 0x2f, 0x80, 
-3a3d      0x02ce, "@CRYBABY;;;;/", 		0x2f, 0x87, 0x2f, 0x80, 
+3713      0x83d4, "HIGH@SCORE", 		0x2f, 0x8f, 0x2f, 0x80, 
+3723      0x803b, "CREDIT@@@", 			0x2f, 0x8f, 0x2f, 0x80, 
+3732      0x803b, "FREE@PLAY", 			0x2f, 0x8f, 0x2f, 0x80, 
+3741      0x028c, "PLAYER@ONE", 		0x2f, 0x85, 0x2f, 0x10, 
+375a      0x028c, "PLAYER@TWO", 		0x2f, 0x85, 0x2f, 0x80, 
+376a      0x0292, "GAME@@OVER", 		0x2f, 0x81, 0x2f, 0x80, 
+377a      0x0252, "READY[", 			0x2f, 0x89, 0x2f, 0x90, 
+3786      0x02ed, "PUSH@START@BUTTON", 		0x2f, 0x87, 0x2f, 0x80, 
+379d      0x02af, "1@PLAYER@ONLY@", 		0x2f, 0x87, 0x2f, 0x80, 
+37c8      0x0396, "BONUS@PUCKMAN@FOR@@@000@]^_", 0x2f, 0x8e, 0x2f, 0x80, 
+37e9      0x02ba, "\@()*+,-.@1980", 		0x2f, 0x83, 0x2f, 0x80, 
+37fd      0x0365, "@@@@@@@@&MS@PAC;MAN'@", 	0x2f, 0x87, 0x2f, 0x80, 
+37fd  P   0x02c3, "CHARACTER@:@NICKNAME", 	0x2f, 0x8f, 0x2f, 0x80, 
+3817      0x0180, "&AKABEI&", 			0x2f, 0x81, 0x2f, 0x80, 
+3825      0x0145, "&MACKY&", 			0x2f, 0x81, 0x2f, 0x80, 
+3832      0x0148, "&PINKY&", 			0x2f, 0x83, 0x2f, 0x80, 
+383f      0x0148, "&MICKY&", 			0x2f, 0x83, 0x2f, 0x80, 
+384d      0x1002, "@10@]^_", 			0x2f, 0x9f, 0x2f, 0x80, 
+385b      0x1402, "@50@]^_", 			0x2f, 0x9f, 0x2f, 0x80, 
+3868      0x025d, "()*+,-.", 			0x2f, 0x83, 0x2f, 0x80, 
+3875      0x02c5, "@OIKAKE;;;;", 		0x2f, 0x81, 0x2f, 0x80, 
+3886      0x02c5, "@URCHIN;;;;;", 		0x2f, 0x81, 0x2f, 0x80, 
+3898      0x02c8, "@MACHIBUSE;;", 		0x2f, 0x83, 0x2f, 0x80, 
+38aa      0x02c8, "@ROMP;;;;;;;", 		0x2f, 0x83, 0x2f, 0x80, 
+38be      0x8581, "", 				0x2f, 0x81, 0x2f, 0x90, 
+38c4      0x026e, "SUPER@PAC;MAN", 		0x2f, 0x89, 0x2f, 0x80, 
+38c7  P   0x8582, "@", 				0x2f, 0x83, 0x2f, 0x90, 
+38d1  P   0x8583, "@", 				0x2f, 0x83, 0x2f, 0x90, 
+38d5      0x802f, "MAN", 			0x2f, 0x89, 0x2f, 0x80, 
+38db  P   0x8584, "@", 				0x2f, 0x83, 0x2f, 0x90, 
+38e6      0x8e8d, "", 				0x2f, 0x8f, 0x2f, 0x90, 
+38e6  P   0x8e8d, "", 				0x2f, 0x83, 0x2f, 0x90, 
+38ec      0x8030, "@@@@", 			0x2f, 0x94, 0x2f, 0x90, 
+38f0  P   0x8e8d, "", 				0x2f, 0x83, 0x2f, 0x90, 
+38fa      0x8e8d, "", 				0x2f, 0x89, 0x2f, 0x90, 
+3904      0x8e8d, "", 				0x2f, 0x89, 0x2f, 0x90, 
+390a      0x0304, "MEMORY@@OK", 		0x2f, 0x8f, 0x2f, 0x80, 
+391a      0x0304, "BAD@@@@R@M", 		0x2f, 0x8f, 0x2f, 0x80, 
+392a      0x0308, "1@COIN@@1@CREDIT@",		0x2f, 0x8f, 0x2f, 0x80, 
+3941      0x0308, "2@COINS@1@CREDIT@",	 	0x2f, 0x8f, 0x2f, 0x80, 
+3958      0x0308, "1@COIN@@2@CREDITS", 		0x2f, 0x8f, 0x2f, 0x80, 
+396f      0x0308, "FREE@@PLAY@@@@@@@", 		0x2f, 0x8f, 0x2f, 0x80, 
+3986      0x030a, "BONUS@@NONE", 		0x2f, 0x8f, 0x2f, 0x80, 
+3997      0x030a, "BONUS@", 			0x2f, 0x8f, 0x2f, 0x80, 
+39a3      0x030c, "PUCKMAN", 			0x2f, 0x8f, 0x2f, 0x80, 
+39b0      0x030e, "TABLE@@", 			0x2f, 0x8f, 0x2f, 0x80, 
+39bd      0x030e, "UPRIGHT", 			0x2f, 0x8f, 0x2f, 0x80, 
+39ca      0x020a, "000", 			0x2f, 0x8f, 0x2f, 0x80, 
+39d3      0x016b, "&AOSUKE&", 			0x2f, 0x85, 0x2f, 0x3d, 
+39e1  P   0x014b, "&MUCKY&", 			0x2f, 0x85, 0x2f, 0x80, 
+39ee  P   0x016e, "&GUZUTA&", 			0x2f, 0x87, 0x2f, 0x80, 
+39fc  P   0x014e, "&MOCKY&", 			0x2f, 0x87, 0x2f, 0x80, 
+3a09      0x02cb, "@KIMAGURE;;", 		0x2f, 0x85, 0x2f, 0x80, 
+3a1a      0x02cb, "@STYLIST;;;;", 		0x2f, 0x85, 0x2f, 0x80, 
+3a2c      0x02ce, "@OTOBOKE;;;", 		0x2f, 0x87, 0x2f, 0x80, 
+3a3d      0x02ce, "@CRYBABY;;;;", 		0x2f, 0x87, 0x2f, 0x80, 
 
 
 	;; "Made By Namco" easter egg text
@@ -10851,47 +10868,47 @@ FinishUpBlankTextDraw:
 3E40:  6B 02 54 48 45 59 40 4D 45 45 54 2F 8F 2F 80 0C  k.THEY@MEET/./..
 3E50:  03 4F 54 54 4F 4D 45 4E 2F 8F 2F 80              .OTTOMEN/./.
 
-3d00      0x0396, "@ADDITIONAL@@@@AT@@@000@]^_/", 	0x2f, 0x95, 0x2f, 0x80, 
-3d00  P   0x0396, "BONUS@PAC;MAN@FOR@@@000@]^_/", 	0x2f, 0x8e, 0x2f, 0x80, 
-3d21  P   0x033a, "\@1980@MIDWAY@MFG%CO%/", 		0x2f, 0x83, 0x2f, 0x80, 
-3d32      0x802f, "P@@@/", 				0x2f, 0x87, 0x2f, 0x80, 
-3d3c      0x025b, "\@MIDWAY@MFG@CO@@@@/", 		0x2f, 0x81, 0x2f, 0x80, 
-3d3c  P   0x033d, "\@1980@MIDWAY@MFG%CO%/", 		0x2f, 0x83, 0x2f, 0x80, 
+3d00      0x0396, "@ADDITIONAL@@@@AT@@@000@]^_", 	0x2f, 0x95, 0x2f, 0x80, 
+3d00  P   0x0396, "BONUS@PAC;MAN@FOR@@@000@]^_", 	0x2f, 0x8e, 0x2f, 0x80, 
+3d21  P   0x033a, "\@1980@MIDWAY@MFG%CO%", 		0x2f, 0x83, 0x2f, 0x80, 
+3d32      0x802f, "P@@@", 				0x2f, 0x87, 0x2f, 0x80, 
+3d3c      0x025b, "\@MIDWAY@MFG@CO@@@@", 		0x2f, 0x81, 0x2f, 0x80, 
+3d3c  P   0x033d, "\@1980@MIDWAY@MFG%CO%", 		0x2f, 0x83, 0x2f, 0x80, 
 
-3d57      0x02c5, ";MAD@DOG@@/", 		0x2f, 0x81, 0x2f, 0x80, 
-3d57  P   0x02c5, ";SHADOW@@@/", 		0x2f, 0x81, 0x2f, 0x80, 
-3d67      0x026e, "@@@BLINKY/", 		0x2f, 0x81, 0x2f, 0x80, 
-3d67  P   0x0165, "&BLINKY&@/", 		0x2f, 0x81, 0x2f, 0x80, 
-3d76      0x02c8, ";KILLER@@@/", 		0x2f, 0x83, 0x2f, 0x80, 
-3d76  P   0x02c8, ";SPEEDY@@@/", 		0x2f, 0x83, 0x2f, 0x80, 
-3d86      0x026e, "@@@PINKY@/", 		0x2f, 0x83, 0x2f, 0x80, 
-3d86  P   0x0168, "&PINKY&@@/", 		0x2f, 0x83, 0x2f, 0x80, 
-3d95      0x026e, "MS@PAC;MAN/", 		0x2f, 0x89, 0x2f, 0x80, 
-3d95  P   0x02cb, ";BASHFUL@@/", 		0x2f, 0x85, 0x2f, 0x80, 
-3da5      0x026e, "@@@INKY@@/", 		0x2f, 0x85, 0x2f, 0x80, 
-3da5  P   0x016b, "&INKY&@@@/", 		0x2f, 0x85, 0x2f, 0x80, 
-3db4      0x023d, "@@1980:1981@/", 		0x2f, 0x81, 0x2f, 0x80, 
-3db4  P   0x02ce, ";POKEY@@@@/", 		0x2f, 0x87, 0x2f, 0x80, 
-3dc6      0x026e, "@@@@SUE/", 			0x2f, 0x87, 0x2f, 0x80, 
-3dc4  P   0x016e, "&CLYDE&@@/", 		0x2f, 0x87, 0x2f, 0x80, 
-3dd3      0x026b, "JUNIOR@@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3dd3  P   0x02c5, ";AAAAAAAA;/", 		0x2f, 0x81, 0x2f, 0x80, 
-3de3      0x026b, "WITH@@@@@/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3de3  P   0x0165, "&BBBBBBB&/", 		0x2f, 0x81, 0x2f, 0x80, 
-3df2      0x026b, "THE@CHASE@/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3df2  P   0x02c8, ";CCCCCCCC;/", 		0x2f, 0x83, 0x2f, 0x80, 
-3e02      0x026b, "STARRING@/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3e02  P   0x0168, "&DDDDDDD&/", 		0x2f, 0x83, 0x2f, 0x80, 
-3e11      0x030c, "MS@PAC;MEN/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3e11  P   0x02cb, ";EEEEEEEE;/", 		0x2f, 0x85, 0x2f, 0x80, 
-3e21      0x026b, "@@@@@@@@@/", 		0x2f, 0x85, 0x2f, 0x80, 
-3e21  P   0x016b, "&FFFFFFF&/", 		0x2f, 0x85, 0x2f, 0x80, 
-3e30      0x026b, "ACT@III&@@/", 		0x2f, 0x87, 0x2f, 0x80, 
-3e30  P   0x02ce, ";GGGGGGGG;/", 		0x2f, 0x87, 0x2f, 0x80, 
-3e40      0x026b, "THEY@MEET/", 		0x2f, 0x8f, 0x2f, 0x80, 
-3e40  P   0x016e, "&HHHHHHH&/", 		0x2f, 0x87, 0x2f, 0x80, 
-3e4f      0x030c, "OTTOMEN/", 			0x2f, 0x8f, 0x2f, 0x80, 
-3e4f  P   0x030c, "PAC;MAN/", 			0x2f, 0x8f, 0x2f, 0x80, 
+3d57      0x02c5, ";MAD@DOG@@", 	0x2f, 0x81, 0x2f, 0x80, 
+3d57  P   0x02c5, ";SHADOW@@@", 	0x2f, 0x81, 0x2f, 0x80, 
+3d67      0x026e, "@@@BLINKY", 		0x2f, 0x81, 0x2f, 0x80, 
+3d67  P   0x0165, "&BLINKY&@", 		0x2f, 0x81, 0x2f, 0x80, 
+3d76      0x02c8, ";KILLER@@@", 	0x2f, 0x83, 0x2f, 0x80, 
+3d76  P   0x02c8, ";SPEEDY@@@", 	0x2f, 0x83, 0x2f, 0x80, 
+3d86      0x026e, "@@@PINKY@", 		0x2f, 0x83, 0x2f, 0x80, 
+3d86  P   0x0168, "&PINKY&@@", 		0x2f, 0x83, 0x2f, 0x80, 
+3d95      0x026e, "MS@PAC;MAN", 	0x2f, 0x89, 0x2f, 0x80, 
+3d95  P   0x02cb, ";BASHFUL@@", 	0x2f, 0x85, 0x2f, 0x80, 
+3da5      0x026e, "@@@INKY@@", 		0x2f, 0x85, 0x2f, 0x80, 
+3da5  P   0x016b, "&INKY&@@@", 		0x2f, 0x85, 0x2f, 0x80, 
+3db4      0x023d, "@@1980:1981@", 	0x2f, 0x81, 0x2f, 0x80, 
+3db4  P   0x02ce, ";POKEY@@@@", 	0x2f, 0x87, 0x2f, 0x80, 
+3dc6      0x026e, "@@@@SUE", 		0x2f, 0x87, 0x2f, 0x80, 
+3dc4  P   0x016e, "&CLYDE&@@", 		0x2f, 0x87, 0x2f, 0x80, 
+3dd3      0x026b, "JUNIOR@@@@", 	0x2f, 0x8f, 0x2f, 0x80, 
+3dd3  P   0x02c5, ";AAAAAAAA;", 	0x2f, 0x81, 0x2f, 0x80, 
+3de3      0x026b, "WITH@@@@@", 		0x2f, 0x8f, 0x2f, 0x80, 
+3de3  P   0x0165, "&BBBBBBB&", 		0x2f, 0x81, 0x2f, 0x80, 
+3df2      0x026b, "THE@CHASE@", 	0x2f, 0x8f, 0x2f, 0x80, 
+3df2  P   0x02c8, ";CCCCCCCC;", 	0x2f, 0x83, 0x2f, 0x80, 
+3e02      0x026b, "STARRING@", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e02  P   0x0168, "&DDDDDDD&", 		0x2f, 0x83, 0x2f, 0x80, 
+3e11      0x030c, "MS@PAC;MEN", 	0x2f, 0x8f, 0x2f, 0x80, 
+3e11  P   0x02cb, ";EEEEEEEE;", 	0x2f, 0x85, 0x2f, 0x80, 
+3e21      0x026b, "@@@@@@@@@", 		0x2f, 0x85, 0x2f, 0x80, 
+3e21  P   0x016b, "&FFFFFFF&", 		0x2f, 0x85, 0x2f, 0x80, 
+3e30      0x026b, "ACT@III&@@", 	0x2f, 0x87, 0x2f, 0x80, 
+3e30  P   0x02ce, ";GGGGGGGG;", 	0x2f, 0x87, 0x2f, 0x80, 
+3e40      0x026b, "THEY@MEET", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e40  P   0x016e, "&HHHHHHH&", 		0x2f, 0x87, 0x2f, 0x80, 
+3e4f      0x030c, "OTTOMEN", 		0x2f, 0x8f, 0x2f, 0x80, 
+3e4f  P   0x030c, "PAC;MAN", 		0x2f, 0x8f, 0x2f, 0x80, 
 
 	    ;; new code for ms-pacman.  used during demo mode, when there are no credits
 
@@ -11510,8 +11527,9 @@ FinishUpBlankTextDraw:
 ; commands: (functionality TBD)
 ;	cmd	    opc 	bytes	param fcn	opc fcn
 	LOOP      =  F0	; 	3	?		repeat this N times, perhaps?
-	SETPOS	  =  F1	; 	2	position?	TBD
-	SETN  	  =  F2	; 	1	value		TBD
+							A B (color)
+	SETPOS	  =  F1	; 	2	position?	
+	SETN  	  =  F2	; 	1	value		store for other ops
 	SETCHAR   =  F3	; 	2	table ptr	switch to the specified sprite code table?
 	-         =  F4
 	PLAYSOUND =  F5	;	1	sound code	play a sound (eg 10=ghost bump)
@@ -11519,12 +11537,20 @@ FinishUpBlankTextDraw:
 	SHOWACT   =  F7	;	
 	CLEARACT  =  F8	; 	-	-		clear the act # from the screen
 	END       =  FF
+
+; this appears to work like,  (guesses here)
+;	setchar ADDR	to select the caracter array to work with
+;	setpos X Y	moves the sprite to that location instantly
+;	loop A B C	moves the sprite to a,b, while using color C
+;			for previous SETN units/speed
+;	PAUSE		wait for SETN units/time
 	
 
 ; data for 1st intermission, part 1
 
 8251:  F1 00 00 		; SETPOS	00 00	
-8254:  F3 75 86			; SETCHAR	#8675
+; set character set 8675 (act sign)
+8254:  F3 75 86			; SETCHAR	#8675	; ACT sign
 8257:  F2 01 			; SETN		01
 8259:  F0 00 00 		; LOOP		00 00
 825D:  F1 BD 52			; SETPOS	BD 52
@@ -11532,16 +11558,20 @@ FinishUpBlankTextDraw:
 8262:  F6			; PAUSE
 8263:  F2 16			; SETN		16
 8265:  F0 00 00 16		; LOOP		00 00 16
+	;       ^^ color 16 (white)
 8269:  F2 16			; SETN		16
 826B:  F6			; PAUSE
 826C:  F1 FF 54			; SETPOS	FF 54
-826F:  F3 14 86			; SETCHAR	#8614	
+
+826F:  F3 14 86			; SETCHAR	#8614	  ; otto
 8272:  F2 7F			; SETN		7F
-8274:  F0 F0 00 09		; LOOP		F0 00 09
+8274:  F0 F0 00 09		; LOOP		F0 00 09  ; otto
+	;       ^^ color 9 (yellow otto)
 8278:  F2 7F			; SETN		7F
-827A:  F0 F0 00 09		; LOOP		F0 00 09
+827A:  F0 F0 00 09		; LOOP		F0 00 09  ; otto
 827E:  F1 00 7F			; SETPOS	00 7F
-8281:  F3 1D 86			; SETCHAR	#861D
+
+8281:  F3 1D 86			; SETCHAR	#861D	  ; otto to center
 8284:  F2 75			; SETN		75
 8286:  F0 10 00 09		; LOOP		10 00 09
 828A:  F2 04			; SETN		04
@@ -11559,12 +11589,12 @@ FinishUpBlankTextDraw:
 82A3:  F1 00 00
 82A6:  F3 7F 86			; #867F
 82A9:  F2 01
-82AB:  F0 00 00 16
+82AB:  F0 00 00 16		; ACT sign
 82AF:  F1 AD 52
 82B2:  F2 28
 82B4:  F6
 82B5:  F2 16
-82B7:  F0 00 00 16
+82B7:  F0 00 00 16		; ACT sign
 82BB:  F2 16
 82BD:  F6
 82BE:  F1 FF 54 
@@ -11572,9 +11602,9 @@ FinishUpBlankTextDraw:
 82C4:  F2 2F
 82C6:  F6
 82C7:  F2 70 
-82C9:  F0 EF 00 05
+82C9:  F0 EF 00 05		; cyan ghost
 82CD:  F2 74
-82CF:  F0 EC 00 05 
+82CF:  F0 EC 00 05 		; cyan ghost
 82D3:  F1 00 7F 
 82D6:  F3 63 86 		; #8663
 82D9:  F2 1C
@@ -11604,22 +11634,21 @@ FinishUpBlankTextDraw:
 8312:  F2 5A 
 8314:  F6
 8315:  F1 00 A4
-8318:  F3 41 86			; #8641
+8318:  F3 41 86			; #8641	 left anna
 831B:  F2 7F 
 831D:  F0 10 00 09 
 8321:  F2 7F
 8323:  F0 10 00 09
 8327:  F1 FF 7F
-832A:  F3 38 86 		; #8638
+832A:  F3 38 86 		; #8638	; right anna
 832D:  F2 76
 832F:  F0 F0 00 09
 8333:  F2 04
 8335:  F0 F0 F0 09
-8339:  F3 4A 86
+8339:  F3 4A 86			; #864a ; up anna (?)
 833C:  F2 30
-833E:  F0 00
-8340:  F0 09
-8342:  F3 38 86			; #8638
+833E:  F0 00 F0 09
+8342:  F3 38 86			; #8638	; stopped anna
 8345:  F2 10
 8347:  F0 00 00 09
 834B:  FF			; end code
@@ -11708,6 +11737,7 @@ FinishUpBlankTextDraw:
 ;	 That was a rosetta stone for figuring out the animation code system
 ;	 (work in progress)
 
+	; this is for the pac being chased (red anna)
 8395:  F2 5A			; SETN( 5A )
 8397:  F6			; PAUSE
 8398:  F1 FF 34			; SETPOS, FF, 34
@@ -11720,14 +11750,17 @@ FinishUpBlankTextDraw:
 83A6:  F0 D8 00 09		; LOOP( d8, 00 09 )
 83AA:  F2 7F			; SETN( 7f )
 83AC:  F6			; PAUSE
+
 83AD:  F2 18			; SETN( 18 )
 83AF:  F6			; PAUSE
+
 83B0:  F1 00 94 		; SETCHAR( LEFT_ANNA )
 83B3:  F3 41 86			; SETN( 
 83B6:  F2 68			; SETN(
-83B8:  F0 28 00 09		; continues
+83B8:  F0 28 00 09		; LOOP( 28 00 09 )
 83BC:  F2 7F			; SETN( 7f )
 83BE:  F6			; PAUSE
+
 83BF:  F1 FC 7F			; SETPOS( fc, 7f )
 83C2:  F3 14 86			; SETCHAR( RIGHT_OTTO )
 83C5:  F2 18			; SETN( 18 )
@@ -11739,15 +11772,18 @@ FinishUpBlankTextDraw:
 83D1:  F2 18			; SETN( 18 )
 83D3:  F6			; PAUSE
 83D4:  F1 00 54			; SETPOS( 00 54 ) 
-83D7:  F3 41 86			; SETCHAR( 8641 )
+83D7:  F3 41 86			; SETCHAR( LEFT_ANNA )
 83DA:  F2 20			; SETN( 20 )
 83DC:  F0 70 00 09		; LOOP
 83E0:  F1 FF B4			; SETPOS( ff, 04 )
+
 83E3:  F3 14 86			; SETCHAR( RIGHT_OTTO )
 83E6:  F2 10			; SETN( 10 )
 83E8:  F6			; PAUSE
 83E9:  F2 24			; SETN( 24 )
+	  SPEED?
 83EB:  F0 90 00 09		; LOOP( 90 0 09)
+          XX YY CC
 83EF:  FF			; end code
 
 ; data for 2nd intermission, part 2
@@ -11802,7 +11838,7 @@ FinishUpBlankTextDraw:
 8451:  F2 5A
 8453:  F6
 8454:  F1 00 60
-8457:  F3 8D 86			; #868D
+8457:  F3 8D 86			; #868D front of stork
 845A:  F2 7F
 845C:  F0 0A 00 16
 8460:  F2 7F
@@ -11816,7 +11852,7 @@ FinishUpBlankTextDraw:
 846D:  F2 6F
 846F:  F6
 8470:  F1 00 60
-8473:  F3 8F 86			; #868F
+8473:  F3 8F 86			; #868F flap stork
 8476:  F2 6A
 8478:  F0 0A 00 16
 847C:  F2 7F
@@ -11827,30 +11863,32 @@ FinishUpBlankTextDraw:
 8488:  FF 			; end code
 
 ; 3rd intermission data part 5
+; sack fall, baby appears
 
-8489:  F3 89 86			; #8689
+8489:  F3 89 86			; #8689 act
 848C:  F2 01
 848E:  F0 00 00 16
 8492:  F1 BD 62
 8495:  F2 5A
 8497:  F6
 8498:  F1 05 60
-849B:  F3 98 86			; #8698
+
+849B:  F3 98 86			; #8698 sack
 849E:  F2 7F
-84A0:  F0 0A 00 16
+84A0:  F0 0A 00 16		; color 16 makes the sack blue
 84A4:  F2 7F
-84A6:  F0 06 0C 16
+84A6:  F0 06 0C 16		; this here is the bounce
 84AA:  F2 06
 84AC:  F0 06 F0 16
 84B0:  F2 0C
 84B2:  F0 03 09 16
 84B6:  F2 05
-84B8:  F0 05 F6 16
+84B8:  F0 05 F6 16		; final parameter is COLOR
 84BC:  F2 0A
 84BE:  F0 04 03 16
-84C2:  F3 9A 86			; #869A
+84C2:  F3 9A 86			; #869A baby
 84C5:  F2 01
-84C7:  F0 00 00 16
+84C7:  F0 00 00 16		; change baby color here
 84CB:  F2 20
 84CD:  F6
 84CE:  FF 			; end code
@@ -11860,7 +11898,7 @@ FinishUpBlankTextDraw:
 84CF:  F1 00 00
 84D2:  F3 75 86			; #8675
 84D5:  F2 01
-84D7:  F0 00 00 16
+84D7:  F0 00 00 16		; ACT 
 84DB:  F1 BD 52
 84DE:  F2 28
 84E0:  F6
@@ -11871,7 +11909,7 @@ FinishUpBlankTextDraw:
 84EA:  F1 00 00 
 84ED:  F3 38 86			; #8638
 84F0:  F2 01 
-84F2:  F0 00 00 09
+84F2:  F0 00 00 09		; pac in front, closest to baby
 84F6:  F1 C0 C0
 84F9:  F2 30
 84FB:  F6
@@ -11893,7 +11931,7 @@ FinishUpBlankTextDraw:
 8518:  F1 00 00
 851B:  F3 14 86			; #8614
 851E:  F2 01
-8520:  F0 00 00 09
+8520:  F0 00 00 09		; pac behind, (red)
 8524:  F1 D0 C0
 8527:  F2 30
 8529:  F6
@@ -12025,18 +12063,18 @@ FinishUpBlankTextDraw:
 ; used in act 1
 
 ; Pac:
-8614:  1B 1B 19 19 1B 1B 32 32 FF	; sprite codes for pac man and ms pac man
-861D:  9B 9B 99 99 9B 9B B2 B2 FF	; 
-8626:  6E 6E 5A 5A 6E 6E 72 72 FF	;
+8614:  1B 1B 19 19 1B 1B 32 32 FF	; msp walking right
+861D:  9B 9B 99 99 9B 9B B2 B2 FF	; msp walking left
+8626:  6E 6E 5A 5A 6E 6E 72 72 FF	; walking up
 
-862F:  EE EE DA DA EE EE F2 F2 FF 	;
-8638:  37 37 2D 2D 37 37 2F 2F FF 	; sprite codes for ms pac man
+862F:  EE EE DA DA EE EE F2 F2 FF 	; left pa
+8638:  37 37 2D 2D 37 37 2F 2F FF 	; right pac
 ;      r  r  R  R  u  u  rc rc
 
 ; used in attract mode to control ms pac moving under marquee
 
 ; moving left
-8641:  B7 B7 AD AD B7 B7 AF AF FF
+8641:  B7 B7 AD AD B7 B7 AF AF FF	; pac left
 
 864A:  36 36 F1 F1 36 36 F3 F3 FF	; ms pac man moving up at the end
 ; moving down?
@@ -13268,6 +13306,7 @@ FinishUpBlankTextDraw:
 
     ; draws title screen logo and text (sets as tasks).  called from #95F8
 
+	; this on pac draws the ghost (logo) and CLYDE" text
 9642  ef        rst     #28		; insert task to draw text "(C) MIDWAY MFG CO"	
 9643  1c 13				; 
 
